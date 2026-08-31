@@ -1,0 +1,16 @@
+# Virtual environment
+venv/
+.venv/
+
+# Bytecode & caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+
+# Environment variables (secrets)
+.env
+
+# Scratch scripts
+scratch/
