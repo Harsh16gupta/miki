@@ -1,0 +1,10 @@
+# Static task -> model mapping for the LLM router (app/llm/router.py).
+# V1 uses a static config on purpose: no intelligent/adaptive routing.
+# Edit model ids here to change which model handles each task — no code change needed.
+# Cheap tasks (extraction, transition proposals) default to a low-cost model;
+# user-facing quality-critical tasks (questions, evaluation) default to a stronger model.
+
+extraction: deepseek/deepseek-chat
+state_transition_proposal: deepseek/deepseek-chat
+question_generation: anthropic/claude-sonnet-4.5
+evaluation: anthropic/claude-sonnet-4.5

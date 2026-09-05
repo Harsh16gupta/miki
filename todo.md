@@ -46,22 +46,15 @@ Context: this schema is the backbone of the whole project. Getting the entities 
 
 Context: every single LLM call in the whole project goes through this layer. Build it once, correctly, here.
 
-- [ ] Create `llm/router.py` with a function like `call_llm(task_type: str, messages: list, response_format: dict | None) -> dict`.
-- [ ] Create a config file (e.g. `llm/model_config.yaml`) mapping task types to model ids, e.g.:
-  ```yaml
-  extraction: deepseek/deepseek-v3
-  state_transition_proposal: deepseek/deepseek-v3
-  question_generation: anthropic/claude-sonnet-4.5
-  evaluation: anthropic/claude-sonnet-4.5
-  ```
-  `call_llm` reads this config to pick the model for the given `task_type` — this is your "static router," not an intelligent one.
-- [ ] Add structured JSON output support to `call_llm` (most providers via OpenRouter support a `response_format` / JSON mode parameter — confirm this for your chosen models) since extraction and transition-proposal calls need reliable structured output, not freeform text you have to regex out.
-- [ ] Add retry logic (simple: retry once or twice on network/rate-limit errors, then raise) — do not build anything fancier than this in V1.
-- [ ] Sign up for Langfuse (or self-host if you prefer), get API keys.
-- [ ] Inside `call_llm`, emit a structured telemetry event on every call: task_type, model_id, input messages (or a hash/summary if you're worried about volume), output, latency_ms, success/failure. Pipe this to Langfuse using their SDK — but wrap it in your own thin function (e.g. `telemetry/log_llm_call.py`) so the rest of the codebase never imports Langfuse directly, only your own function.
-- [ ] Test: call `call_llm` for a trivial prompt, confirm the response comes back correctly AND confirm the call shows up in your Langfuse dashboard with the right metadata.
+- [x] Create `app/llm/router.py` with `call_llm(task_type: str, messages: list, response_format: dict | None) -> dict`.
+- [x] Create `app/llm/model_config.yaml` mapping task types to model ids (static router). Cheap tasks → deepseek/deepseek-chat; question_generation/evaluation → anthropic/claude-sonnet-4.5.
+- [x] Structured JSON output support in `call_llm` via `response_format` (verified live with deepseek, parses to `parsed_json`, raises loudly on invalid JSON).
+- [x] Retry logic (2 retries on network/timeout/429/5xx with linear backoff, then raise; no retry on other 4xx).
+- [ ] Sign up for Langfuse (or self-host), get API keys → put `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` in `.env` (see `.env.example`).
+- [x] Telemetry wrapper `app/telemetry/log_llm_call.py` (own thin function; rest of codebase never imports Langfuse). `call_llm` emits task_type, model_id, messages, output, latency_ms, success/failure + usage on every call. No-ops with a warning when keys are missing; never raises.
+- [ ] Test: trivial `call_llm` returns correctly (DONE, verified live) AND call shows up in Langfuse dashboard (BLOCKED on Langfuse signup — rerun any `call_llm` after adding keys and check dashboard).
 
-**Checkpoint 2:** Every LLM call in the project can now go through one function, with one config file controlling which model handles which task, and every call is automatically traced in Langfuse.
+**Checkpoint 2 (CODE DONE, dashboard pending Langfuse keys):** One function + one config control all LLM calls; every call emits telemetry (currently warning-skipped until keys are set).
 
 ---
 
