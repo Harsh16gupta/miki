@@ -1,3 +1,11 @@
+"""Phase 0 sanity check: one raw HTTP call to OpenRouter.
+
+Run with ``PYTHONPATH=. venv/bin/python scratch/test_llm_call.py``.
+Requires OPENROUTER_API_KEY in .env. Uses the cheapest model available;
+prints the reply on success. Superseded by app/llm/router.py (Phase 2),
+kept as the original "LLM access works" proof.
+"""
+
 import os
 from dotenv import load_dotenv
 import httpx

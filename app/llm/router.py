@@ -95,10 +95,12 @@ def call_llm(
         and ``latency_ms``.
 
     Raises:
-        ValueError: Unknown ``task_type``, or model returned invalid JSON
-            when structured output was requested.
+        ValueError: Unknown ``task_type``; model returned invalid JSON when
+            structured output was requested; or provider returned a 200 with
+            a malformed/unexpected body.
         RuntimeError: ``OPENROUTER_API_KEY`` is not set.
-        httpx.HTTPError: Network failure or retryable status after retries.
+        httpx.HTTPError: Network failure or retryable status after retries,
+            or a non-retryable 4xx client error.
     """
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:

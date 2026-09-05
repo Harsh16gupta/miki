@@ -28,8 +28,10 @@ def log_llm_call(
 ) -> None:
     """Emit one structured telemetry event for an LLM call.
 
-    Pipes to Langfuse as a trace with a generation span carrying model,
-    latency, token usage and success/failure metadata.
+    Pipes to Langfuse (v4 SDK) as a generation observation on its own trace,
+    carrying the model, input messages, output, latency, token usage and
+    success/failure metadata. Failures are marked with level ERROR so they
+    stand out in the Langfuse dashboard.
     """
     try:
         public_key = os.getenv("LANGFUSE_PUBLIC_KEY")

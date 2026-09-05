@@ -1,3 +1,11 @@
+"""ORM models for the Miki interview engine (Phase 1 schema).
+
+Importing this package registers every model on ``app.database.Base``,
+which is what Alembic uses as ``target_metadata`` for autogenerate
+(see ``migrations/env.py``). Prefer importing from here
+(``from app.models import Session``) over deep module paths.
+"""
+
 from app.models.candidate_profile import CandidateProfile
 from app.models.claim import Claim
 from app.models.enums import EvidenceType, SessionStatus, Speaker

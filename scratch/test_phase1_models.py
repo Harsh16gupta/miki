@@ -50,7 +50,7 @@ def run_phase_1_verification():
         )
         db.add(candidate)
         db.flush()
-        print(f"✓ Created CandidateProfile (id={candidate.id})")
+        print(f"[OK] Created CandidateProfile (id={candidate.id})")
 
         # 2. Create RoleProfile
         role = RoleProfile(
@@ -63,7 +63,7 @@ def run_phase_1_verification():
         )
         db.add(role)
         db.flush()
-        print(f"✓ Created RoleProfile (id={role.id})")
+        print(f"[OK] Created RoleProfile (id={role.id})")
 
         # 3. Create Session
         session = Session(
@@ -76,7 +76,7 @@ def run_phase_1_verification():
         )
         db.add(session)
         db.flush()
-        print(f"✓ Created Session (id={session.id}, status={session.status})")
+        print(f"[OK] Created Session (id={session.id}, status={session.status})")
 
         # 4. Create Turns (Miki question + Candidate answer)
         turn_1 = Turn(
@@ -96,7 +96,7 @@ def run_phase_1_verification():
         )
         db.add(turn_2)
         db.flush()
-        print(f"✓ Created Turns (turn 1 id={turn_1.id}, turn 2 id={turn_2.id})")
+        print(f"[OK] Created Turns (turn 1 id={turn_1.id}, turn 2 id={turn_2.id})")
 
         # 5. Create Claim extracted from Candidate Turn
         claim = Claim(
@@ -108,7 +108,7 @@ def run_phase_1_verification():
         )
         db.add(claim)
         db.flush()
-        print(f"✓ Created Claim (id={claim.id}, confidence={claim.confidence})")
+        print(f"[OK] Created Claim (id={claim.id}, confidence={claim.confidence})")
 
         # 6. Create Evidence for the Claim
         evidence = Evidence(
@@ -119,7 +119,7 @@ def run_phase_1_verification():
         )
         db.add(evidence)
         db.flush()
-        print(f"✓ Created Evidence (id={evidence.id}, type={evidence.evidence_type})")
+        print(f"[OK] Created Evidence (id={evidence.id}, type={evidence.evidence_type})")
 
         # 7. Create StateTransition record
         transition = StateTransition(
@@ -133,7 +133,7 @@ def run_phase_1_verification():
         )
         db.add(transition)
         db.flush()
-        print(f"✓ Created StateTransition (from={transition.from_state} to={transition.to_state})")
+        print(f"[OK] Created StateTransition (from={transition.from_state} to={transition.to_state})")
 
         # 8. Create Evaluation record
         eval_record = Evaluation(
@@ -146,7 +146,7 @@ def run_phase_1_verification():
         )
         db.add(eval_record)
         db.flush()
-        print(f"✓ Created Evaluation (dimension={eval_record.dimension}, score={eval_record.score})")
+        print(f"[OK] Created Evaluation (dimension={eval_record.dimension}, score={eval_record.score})")
 
         # Commit transaction
         db.commit()
@@ -161,7 +161,7 @@ def run_phase_1_verification():
         assert retrieved_session.candidate_profile.extracted_json["candidate_name"] == "Harsh Gupta"
         assert retrieved_session.claims[0].evidence_items[0].evidence_type == EvidenceType.SUPPORTS
 
-        print(f"✓ Relationship queries passed! Session has {len(retrieved_session.turns)} turns, {len(retrieved_session.claims)} claims.")
+        print(f"[OK] Relationship queries passed! Session has {len(retrieved_session.turns)} turns, {len(retrieved_session.claims)} claims.")
 
         # 9. Test Foreign Key Constraint Enforcement
         print("\n--- Testing Foreign Key Integrity Constraint ---")
@@ -177,13 +177,13 @@ def run_phase_1_verification():
             raise AssertionError("Foreign key constraint failed: Orphaned turn was inserted!")
         except IntegrityError:
             db.rollback()
-            print("✓ Database successfully rejected orphaned turn with IntegrityError (Foreign Key enforced)!")
+            print("[OK] Database successfully rejected orphaned turn with IntegrityError (Foreign Key enforced)!")
 
         print("\n=== Checkpoint 1 PASSED: All 8 models verified successfully! ===")
 
     except Exception as e:
         db.rollback()
-        print(f"✗ Verification failed with error: {e}")
+        print(f"[FAIL] Verification failed with error: {e}")
         raise
     finally:
         db.close()
