@@ -55,11 +55,24 @@ def model_for_task(task_type: str) -> str:
         ) from None
 
 
-def _is_retryable(exc_or_status: httpx.HTTPError | int) -> bool:
-    if isinstance(exc_or_status, int):
-        return exc_or_status in RETRYABLE_STATUS_CODES
-    # Network errors, timeouts, connection drops: always retryable.
-    return True
+def _fail(
+    *,
+    task_type: str,
+    model_id: str,
+    messages: list[dict[str, Any]],
+    latency_ms: int,
+    error: str | None,
+) -> None:
+    """Log one failure telemetry event (never raises itself)."""
+    log_llm_call(
+        task_type=task_type,
+        model_id=model_id,
+        messages=messages,
+        output=None,
+        latency_ms=latency_ms,
+        success=False,
+        error=error,
+    )
 
 
 def call_llm(
@@ -105,59 +118,67 @@ def call_llm(
 
     last_error: str | None = None
     start = time.monotonic()
+    data: dict[str, Any] | None = None
     for attempt in range(MAX_RETRIES + 1):
         try:
             response = httpx.post(
                 OPENROUTER_URL, headers=headers, json=payload, timeout=60.0
             )
-            if response.status_code in RETRYABLE_STATUS_CODES:
-                last_error = f"HTTP {response.status_code}: {response.text[:500]}"
-                time.sleep(attempt + 1)
-                continue
-            if response.status_code >= 400:
-                # Non-retryable client error: record telemetry, then raise.
-                latency_ms = int((time.monotonic() - start) * 1000)
-                log_llm_call(
+        except httpx.HTTPError as e:
+            # Network error / timeout / connection drop: retryable.
+            last_error = f"{type(e).__name__}: {e}"
+            if attempt >= MAX_RETRIES:
+                _fail(
                     task_type=task_type,
                     model_id=model_id,
                     messages=messages,
-                    output=None,
-                    latency_ms=latency_ms,
-                    success=False,
-                    error=f"HTTP {response.status_code}: {response.text[:500]}",
+                    latency_ms=int((time.monotonic() - start) * 1000),
+                    error=last_error,
                 )
-                response.raise_for_status()
-            data = response.json()
-            break
-        except httpx.HTTPError as e:
-            last_error = f"{type(e).__name__}: {e}"
-            if attempt < MAX_RETRIES:
-                time.sleep(attempt + 1)
-                continue
-            latency_ms = int((time.monotonic() - start) * 1000)
-            log_llm_call(
+                raise
+            time.sleep(attempt + 1)
+            continue
+        if response.status_code in RETRYABLE_STATUS_CODES:
+            last_error = f"HTTP {response.status_code}: {response.text[:500]}"
+            if attempt >= MAX_RETRIES:
+                _fail(
+                    task_type=task_type,
+                    model_id=model_id,
+                    messages=messages,
+                    latency_ms=int((time.monotonic() - start) * 1000),
+                    error=last_error,
+                )
+                raise httpx.HTTPError(f"LLM call failed after retries: {last_error}")
+            time.sleep(attempt + 1)
+            continue
+        if response.status_code >= 400:
+            # Non-retryable client error: single telemetry event, raise now.
+            last_error = f"HTTP {response.status_code}: {response.text[:500]}"
+            _fail(
                 task_type=task_type,
                 model_id=model_id,
                 messages=messages,
-                output=None,
-                latency_ms=latency_ms,
-                success=False,
+                latency_ms=int((time.monotonic() - start) * 1000),
                 error=last_error,
             )
-            raise
-    else:  # Retries exhausted on retryable HTTP statuses.
-        latency_ms = int((time.monotonic() - start) * 1000)
-        log_llm_call(
-            task_type=task_type,
-            model_id=model_id,
-            messages=messages,
-            output=None,
-            latency_ms=latency_ms,
-            success=False,
-            error=last_error,
-        )
-        raise httpx.HTTPError(f"LLM call failed after retries: {last_error}")
+            response.raise_for_status()
+        try:
+            data = response.json()
+            _ = data["choices"][0]["message"]["content"]
+        except (ValueError, KeyError, IndexError, TypeError) as e:
+            # 200 with a malformed/unexpected body: not retryable, fail loud.
+            last_error = f"Malformed LLM response: {e}"
+            _fail(
+                task_type=task_type,
+                model_id=model_id,
+                messages=messages,
+                latency_ms=int((time.monotonic() - start) * 1000),
+                error=last_error,
+            )
+            raise ValueError(last_error) from e
+        break
 
+    assert data is not None  # loop only exits via break (success) or raise
     latency_ms = int((time.monotonic() - start) * 1000)
     content = data["choices"][0]["message"]["content"]
     usage = data.get("usage", {})

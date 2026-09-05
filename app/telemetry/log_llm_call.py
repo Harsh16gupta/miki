@@ -49,25 +49,43 @@ def log_llm_call(
             secret_key=secret_key,
             host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
         )
-        trace = client.trace(
+
+        def _as_int(value: Any) -> int | None:
+            return value if isinstance(value, int) else None
+
+        # OpenRouter reports prompt/completion/total tokens; Langfuse v4
+        # wants a flat str->int usage_details map.
+        prompt_tokens = _as_int((usage or {}).get("prompt_tokens"))
+        completion_tokens = _as_int((usage or {}).get("completion_tokens"))
+        total_tokens = _as_int((usage or {}).get("total_tokens"))
+        usage_details = {
+            k: v
+            for k, v in {
+                "input": prompt_tokens,
+                "output": completion_tokens,
+                "total": total_tokens,
+            }.items()
+            if v is not None
+        }
+
+        observation = client.start_observation(
+            trace_context={"trace_id": client.create_trace_id()},
             name=f"llm:{task_type}",
+            as_type="generation",
             input=messages,
             output=output,
+            model=model_id,
             metadata={
                 "task_type": task_type,
                 "model_id": model_id,
                 "success": success,
                 "error": error,
+                "latency_ms": latency_ms,
             },
+            usage_details=usage_details or None,
+            level="ERROR" if not success else "DEFAULT",
         )
-        trace.generation(
-            name=task_type,
-            model=model_id,
-            input=messages,
-            output=output,
-            metadata={"latency_ms": latency_ms, "success": success},
-            usage=usage,
-        )
+        observation.end()
         client.flush()
     except Exception:
         logger.exception("telemetry logging failed (task=%s)", task_type)
