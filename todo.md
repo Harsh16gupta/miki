@@ -25,7 +25,7 @@
 
 Context: this schema is the backbone of the whole project. Getting the entities right now saves a rewrite in V2.
 
-- [ ] Design (on paper or in a doc, before code) the following tables and their key fields:
+- [x] Design (on paper or in a doc, before code) the following tables and their key fields:
   - `candidate_profile`: id, raw_resume_text, extracted_json (JSON), created_at
   - `role_profile`: id, raw_jd_text, extracted_json (JSON), created_at
   - `session`: id, candidate_profile_id (FK), role_profile_id (FK), mode (string, e.g. "normal"), status (enum: in_progress/completed/aborted), started_at, ended_at, policy_version (string), engine_version (string)
@@ -34,11 +34,11 @@ Context: this schema is the backbone of the whole project. Getting the entities 
   - `evidence`: id, claim_id (FK), turn_id (FK), evidence_text, evidence_type (enum: supports/contradicts/vague), created_at
   - `state_transition`: id, session_id (FK), from_state, to_state, proposed_by_llm (bool), was_validated (bool), rejection_reason (nullable string), model_id (string), created_at
   - `evaluation`: id, session_id (FK), dimension (string, e.g. "system_design"), score (float), evidence_refs (JSON array of evidence ids), rubric_version (string), model_id (string), created_at
-- [ ] Write SQLAlchemy models for each table above, with correct foreign keys and relationships.
-- [ ] Generate and run the Alembic migration for all of these tables.
-- [ ] Write a tiny script that manually inserts one fake row into each table (by hand, no LLM involved) and reads it back, to confirm the schema and relationships actually work before anything else depends on them.
+- [x] Write SQLAlchemy models for each table above, with correct foreign keys and relationships.
+- [x] Generate and run the Alembic migration for all of these tables.
+- [x] Write a tiny script that manually inserts one fake row into each table (by hand, no LLM involved) and reads it back, to confirm the schema and relationships actually work before anything else depends on them.
 
-**Checkpoint 1:** All tables exist in the database, relationships are enforced (test by trying to insert a `turn` with a non-existent `session_id` and confirming it fails), and you can manually write/read a full fake session's worth of data across all tables.
+**Checkpoint 1 (PASSED):** All tables exist in the database, relationships are enforced (test by trying to insert a `turn` with a non-existent `session_id` and confirming it fails), and you can manually write/read a full fake session's worth of data across all tables.
 
 ---
 

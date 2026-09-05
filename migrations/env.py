@@ -17,7 +17,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # 2. Tell Alembic about your SQLAlchemy models for autogenerate
-import app.models.ping  # noqa: F401
+import app.models  # noqa: F401
 from app.database import Base
 
 target_metadata = Base.metadata
