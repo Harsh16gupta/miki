@@ -46,10 +46,16 @@ def log_llm_call(
 
         from langfuse import Langfuse
 
+        host = (
+            os.getenv("LANGFUSE_HOST")
+            or os.getenv("LANGFUSE_BASE_URL")
+            or "https://cloud.langfuse.com"
+        )
+
         client = Langfuse(
             public_key=public_key,
             secret_key=secret_key,
-            host=os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com"),
+            host=host,
         )
 
         def _as_int(value: Any) -> int | None:

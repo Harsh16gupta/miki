@@ -50,9 +50,9 @@ Context: every single LLM call in the whole project goes through this layer. Bui
 - [x] Create `app/llm/model_config.yaml` mapping task types to model ids (static router). Cheap tasks → deepseek/deepseek-chat; question_generation/evaluation → anthropic/claude-sonnet-4.5.
 - [x] Structured JSON output support in `call_llm` via `response_format` (verified live with deepseek, parses to `parsed_json`, raises loudly on invalid JSON).
 - [x] Retry logic (2 retries on network/timeout/429/5xx with linear backoff, then raise; no retry on other 4xx).
-- [ ] Sign up for Langfuse (or self-host), get API keys → put `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` in `.env` (see `.env.example`).
+- [x] Sign up for Langfuse (or self-host), get API keys → put `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` in `.env` (see `.env.example`).
 - [x] Telemetry wrapper `app/telemetry/log_llm_call.py` (own thin function; rest of codebase never imports Langfuse). `call_llm` emits task_type, model_id, messages, output, latency_ms, success/failure + usage on every call. No-ops with a warning when keys are missing; never raises.
-- [ ] Test: trivial `call_llm` returns correctly (DONE, verified live) AND call shows up in Langfuse dashboard (BLOCKED on Langfuse signup — rerun any `call_llm` after adding keys and check dashboard).
+- [x] Test: trivial `call_llm` returns correctly AND call shows up in Langfuse dashboard (VERIFIED 2026-09-06: 2x `llm:extraction` traces in cloud project).
 
 **Checkpoint 2 (CODE DONE, dashboard pending Langfuse keys):** One function + one config control all LLM calls; every call emits telemetry (currently warning-skipped until keys are set).
 
