@@ -169,7 +169,9 @@ def call_llm(
             _ = data["choices"][0]["message"]["content"]
         except (ValueError, KeyError, IndexError, TypeError) as e:
             # 200 with a malformed/unexpected body: not retryable, fail loud.
-            last_error = f"Malformed LLM response: {e}"
+            # Include a snippet of the raw body so the cause is diagnosable
+            # from the API error + server log (e.g. provider error object).
+            last_error = f"Malformed LLM response: {e} body={response.text[:500]!r}"
             _fail(
                 task_type=task_type,
                 model_id=model_id,

@@ -11,6 +11,7 @@ Flow: raw text -> LLM extraction -> DB row.
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -21,6 +22,8 @@ from app.database import SessionLocal
 from app.ingest.extraction import extract_candidate_profile, extract_role_profile
 from app.ingest.pdf import extract_text_from_bytes
 from app.models import CandidateProfile, RoleProfile
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["profiles"])
 
@@ -67,6 +70,7 @@ async def _file_to_text(upload: UploadFile) -> str:
 
 
 def _save_candidate(db: Session, raw_text: str) -> ProfileResponse:
+    logger.info("candidate extraction: input_chars=%d", len(raw_text))
     try:
         extracted = extract_candidate_profile(raw_text)
     except ValueError as e:
@@ -82,6 +86,7 @@ def _save_candidate(db: Session, raw_text: str) -> ProfileResponse:
 
 
 def _save_role(db: Session, raw_text: str) -> ProfileResponse:
+    logger.info("role extraction: input_chars=%d", len(raw_text))
     try:
         extracted = extract_role_profile(raw_text)
     except ValueError as e:
