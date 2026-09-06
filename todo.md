@@ -104,10 +104,10 @@ Context: prove the skeleton and persistence work with zero AI involved before ad
 
 ## PHASE 6 — Claim/Evidence Extraction (real LLM call)
 
-- [ ] Write the extraction prompt: input is the candidate's latest answer (plus recent conversation context), output is structured JSON listing: claims made, a category per claim, a confidence/vagueness signal, and whether it contradicts an earlier claim or the resume.
-- [ ] Wire this as `call_llm(task_type="extraction", ...)`.
-- [ ] On receiving output, write rows to `claim` and `evidence` tables, linked to the correct `turn`.
-- [ ] Test against 3–5 hand-written fake candidate answers (not live yet) covering: a strong specific answer, a vague answer, an answer contradicting an earlier one. Manually verify the extracted claims/evidence look right for each.
+- [x] Write the extraction prompt: input is the candidate's latest answer (plus recent conversation context), output is structured JSON listing: claims made, a category per claim, a confidence/vagueness signal, and whether it contradicts an earlier claim or the resume.
+- [x] Wire this as `call_llm(task_type="extraction", ...)`.
+- [x] On receiving output, write rows to `claim` and `evidence` tables, linked to the correct `turn`.
+- [x] Test against 3–5 hand-written fake candidate answers (not live yet) covering: a strong specific answer, a vague answer, an answer contradicting an earlier one. Manually verify the extracted claims/evidence look right for each.
 
 **Checkpoint 6:** Given any candidate answer (fake, typed), you get back correctly structured claims and evidence, persisted and linked to the right turn.
 
