@@ -73,7 +73,7 @@ Context: every single LLM call in the whole project goes through this layer. Bui
 
 ## PHASE 4 — Interview Policy Config
 
-- [ ] Write `policies/normal_interview.yaml` (or JSON) by hand, containing at minimum:
+- [x] Write `policies/normal_interview.yaml` (or JSON) by hand, containing at minimum:
   - `target_duration_minutes`: e.g. 40
   - `min_projects_covered`: e.g. 2
   - `min_required_skills_covered`: e.g. 3
@@ -82,8 +82,8 @@ Context: every single LLM call in the whole project goes through this layer. Bui
   - `difficulty_deescalation_rule`: plain description
   - `silence_threshold_seconds`: 3–5 (used later by the voice layer, defined here since it's policy, not audio-code detail)
   - `closing_rule`: plain description (e.g. "close once min coverage is met AND duration >= target_duration_minutes, or hard-cap at target_duration_minutes + 15")
-- [ ] Write a small Python loader that parses this file into a typed config object (e.g. a Pydantic model) so the rest of the code references typed fields, not raw dict lookups.
-- [ ] Add a `policy_version` field/string (can just be a semantic version you bump manually, e.g. "0.1") that gets stamped onto every `session` row using this policy.
+- [x] Write a small Python loader that parses this file into a typed config object (e.g. a Pydantic model) so the rest of the code references typed fields, not raw dict lookups.
+- [x] Add a `policy_version` field/string (can just be a semantic version you bump manually, e.g. "0.1") that gets stamped onto every `session` row using this policy.
 
 **Checkpoint 4:** You have one file that fully defines interview behavior, loaded into a typed object, versioned.
 

@@ -1,0 +1,38 @@
+# Normal interview policy (Phase 4).
+# Single source of truth for "how should this interview behave".
+# Prompts may describe these rules in words, but enforcement lives in code
+# reading this file — never inside a prompt. Bump `version` on any change.
+version: "0.1"
+mode: normal
+
+# Target length of the interview proper (opening + probing + follow-ups).
+target_duration_minutes: 40
+# Hard stop: close no later than target + this many minutes.
+max_overtime_minutes: 15
+
+# Coverage gates: minimum distinct projects / required skills touched
+# before the session is allowed to close.
+min_projects_covered: 2
+min_required_skills_covered: 3
+
+# Depth guard: max consecutive follow-ups on a single claim before moving on.
+max_followups_per_claim: 3
+
+# Difficulty rules are plain descriptions here; the state machine (Phase 5)
+# and transition prompt (Phase 7) interpret them. Kept as text deliberately
+# so policy tuning doesn't require code changes.
+difficulty_escalation_rule: >-
+  Escalate after 2 consecutive strong, specific answers in the same category:
+  move to a harder variant (deeper trade-off, scale, or failure-mode question)
+  rather than a new topic.
+difficulty_deescalation_rule: >-
+  De-escalate after 2 consecutive weak or vague answers: drop to fundamentals
+  on the same topic with scaffolding before trying a new topic.
+
+# Voice-layer turn-taking (defined here because it is policy, not audio detail).
+silence_threshold_seconds: 4
+
+# When the interview may wrap up.
+closing_rule: >-
+  Close once minimum coverage is met AND elapsed time >= target duration,
+  or hard-cap at target + max overtime regardless of coverage.
