@@ -60,11 +60,11 @@ Context: every single LLM call in the whole project goes through this layer. Bui
 
 ## PHASE 3 — Resume/JD Ingestion
 
-- [ ] Add file upload endpoint(s) (`POST /candidate-profile`, `POST /role-profile`) accepting PDF or plain text.
-- [ ] Add PDF text extraction (e.g. `pypdf` or `unstructured` library) for PDF uploads.
-- [ ] Write the extraction prompt for candidate profiles: input is raw resume text, output is structured JSON (skills list, projects list with descriptions, explicit claims list e.g. "reduced latency by 40%"). Use `call_llm` with `task_type="extraction"` and JSON response format.
-- [ ] Write the equivalent extraction prompt for role profiles (required skills, preferred skills, responsibilities, seniority signal).
-- [ ] Wire both endpoints to: save raw text → call extraction → save extracted JSON to the `candidate_profile` / `role_profile` tables.
+- [x] Add file upload endpoint(s) (`POST /candidate-profile`, `POST /role-profile`) accepting PDF or plain text.
+- [x] Add PDF text extraction (e.g. `pypdf` or `unstructured` library) for PDF uploads.
+- [x] Write the extraction prompt for candidate profiles: input is raw resume text, output is structured JSON (skills list, projects list with descriptions, explicit claims list e.g. "reduced latency by 40%"). Use `call_llm` with `task_type="extraction"` and JSON response format.
+- [x] Write the equivalent extraction prompt for role profiles (required skills, preferred skills, responsibilities, seniority signal).
+- [x] Wire both endpoints to: save raw text → call extraction → save extracted JSON to the `candidate_profile` / `role_profile` tables.
 - [ ] Test with your actual resume and a real job description you're targeting. Manually inspect the extracted JSON for accuracy — fix the prompt if it's missing obvious claims or projects.
 
 **Checkpoint 3:** You can upload your real resume and a real JD and get back sensible structured JSON, stored in the database, traceable in Langfuse.

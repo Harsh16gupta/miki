@@ -1,13 +1,14 @@
 """Miki FastAPI application entrypoint.
 
 Run locally with: ``venv/bin/uvicorn main:app --reload``.
-Interview, session, and voice endpoints are added in later phases; this module
-currently exposes only the health check from Phase 0.
 """
 
 from fastapi import FastAPI
 
+from app.routers.profiles import router as profiles_router
+
 app = FastAPI()
+app.include_router(profiles_router)
 
 
 @app.get("/health")
