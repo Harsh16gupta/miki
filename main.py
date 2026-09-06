@@ -18,7 +18,12 @@ def root():
         "service": "miki",
         "health": "/health",
         "docs": "/docs",
-        "endpoints": ["POST /candidate-profile", "POST /role-profile"],
+        "endpoints": [
+            "POST /candidate-profile",
+            "POST /candidate-profile/upload",
+            "POST /role-profile",
+            "POST /role-profile/upload",
+        ],
     }
 
 

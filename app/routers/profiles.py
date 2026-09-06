@@ -1,9 +1,10 @@
 """Phase 3 ingestion endpoints: resume and JD upload + LLM extraction.
 
-Each endpoint accepts PDF or plain text via any of:
-- JSON: ``{"text": "..."}``
-- File: multipart/form-data with ``file`` field (PDF or .txt)
-- Raw: text/plain body
+Two shapes per profile so Swagger UI stays usable:
+- ``POST /candidate-profile`` / ``POST /role-profile`` take JSON
+  ``{"text": "..."}`` (typed body, editable in docs).
+- ``POST /candidate-profile/upload`` / ``POST /role-profile/upload``
+  take a multipart ``file`` (PDF or .txt) with a real file-picker button.
 
 Flow: raw text -> LLM extraction -> DB row.
 """
@@ -12,7 +13,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -36,73 +37,36 @@ def get_db():
 DbSession = Annotated[Session, Depends(get_db)]
 
 
+class TextPayload(BaseModel):
+    text: str
+
+
 class ProfileResponse(BaseModel):
     id: int
     extracted_json: dict[str, Any]
 
 
-async def _read_raw_text(request: Request, field_name: str = "text") -> str:
-    """Read raw text from JSON, multipart file upload, or plain-text body."""
-    content_type = request.headers.get("content-type", "")
+def _require_text(text: str) -> str:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        raise HTTPException(status_code=400, detail="Field 'text' must be non-empty")
+    return cleaned
 
-    if "application/json" in content_type:
-        try:
-            body = await request.json()
-        except Exception as e:
-            raise HTTPException(status_code=400, detail="Invalid JSON body") from e
-        text = (body.get(field_name) or body.get("raw_text") or "").strip()
-        if not text:
-            raise HTTPException(status_code=400, detail="JSON needs non-empty text")
-        return text
 
-    if "multipart/form-data" in content_type:
-        form = await request.form()
-        upload = form.get("file")
-        if upload is not None:
-            try:
-                data = await upload.read()  # type: ignore[union-attr]
-            except Exception as e:
-                raise HTTPException(
-                    status_code=400, detail=f"Could not read file: {e}"
-                ) from e
-            if not data:
-                raise HTTPException(status_code=400, detail="Uploaded file is empty")
-            try:
-                filename = getattr(upload, "filename", None)
-                return extract_text_from_bytes(data, filename=filename)
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e)) from e
-        text_field = form.get(field_name) or form.get("raw_text")
-        if text_field:
-            text = str(text_field).strip()
-            if text:
-                return text
-        raise HTTPException(status_code=400, detail="Form needs file or text field")
-
+async def _file_to_text(upload: UploadFile) -> str:
     try:
-        body_bytes = await request.body()
+        data = await upload.read()
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Could not read body: {e}") from e
-    if not body_bytes.strip():
-        raise HTTPException(status_code=400, detail="Empty body: send JSON or file")
-    if body_bytes[:4] == b"%PDF":
-        try:
-            return extract_text_from_bytes(body_bytes, filename="upload.pdf")
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e)) from e
+        raise HTTPException(status_code=400, detail=f"Could not read file: {e}") from e
+    if not data:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
     try:
-        text = body_bytes.decode("utf-8").strip()
-    except UnicodeDecodeError as e:
-        raise HTTPException(status_code=415, detail="Unsupported content type") from e
-    if not text:
-        raise HTTPException(status_code=400, detail="Empty text body")
-    return text
+        return extract_text_from_bytes(data, filename=upload.filename)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.post("/candidate-profile", response_model=ProfileResponse, status_code=201)
-async def create_candidate_profile(request: Request, db: DbSession) -> ProfileResponse:
-    """Upload a resume (PDF or text), return extracted skills/projects/claims."""
-    raw_text = await _read_raw_text(request)
+def _save_candidate(db: Session, raw_text: str) -> ProfileResponse:
     try:
         extracted = extract_candidate_profile(raw_text)
     except ValueError as e:
@@ -110,7 +74,6 @@ async def create_candidate_profile(request: Request, db: DbSession) -> ProfileRe
     except Exception as e:
         msg = f"LLM extraction failed: {e}"
         raise HTTPException(status_code=502, detail=msg) from e
-
     row = CandidateProfile(raw_resume_text=raw_text, extracted_json=extracted)
     db.add(row)
     db.commit()
@@ -118,10 +81,7 @@ async def create_candidate_profile(request: Request, db: DbSession) -> ProfileRe
     return ProfileResponse(id=row.id, extracted_json=row.extracted_json)
 
 
-@router.post("/role-profile", response_model=ProfileResponse, status_code=201)
-async def create_role_profile(request: Request, db: DbSession) -> ProfileResponse:
-    """Upload a job description (PDF or text), return structured requirements."""
-    raw_text = await _read_raw_text(request)
+def _save_role(db: Session, raw_text: str) -> ProfileResponse:
     try:
         extracted = extract_role_profile(raw_text)
     except ValueError as e:
@@ -129,9 +89,38 @@ async def create_role_profile(request: Request, db: DbSession) -> ProfileRespons
     except Exception as e:
         msg = f"LLM extraction failed: {e}"
         raise HTTPException(status_code=502, detail=msg) from e
-
     row = RoleProfile(raw_jd_text=raw_text, extracted_json=extracted)
     db.add(row)
     db.commit()
     db.refresh(row)
     return ProfileResponse(id=row.id, extracted_json=row.extracted_json)
+
+
+@router.post("/candidate-profile", response_model=ProfileResponse, status_code=201)
+def create_candidate_profile(payload: TextPayload, db: DbSession) -> ProfileResponse:
+    """Submit a resume as JSON text, return extracted skills/projects/claims."""
+    return _save_candidate(db, _require_text(payload.text))
+
+
+@router.post(
+    "/candidate-profile/upload", response_model=ProfileResponse, status_code=201
+)
+async def upload_candidate_profile(
+    db: DbSession, file: Annotated[UploadFile, File(description="Resume PDF or .txt")]
+) -> ProfileResponse:
+    """Upload a resume file (PDF or .txt), return extracted structure."""
+    return _save_candidate(db, await _file_to_text(file))
+
+
+@router.post("/role-profile", response_model=ProfileResponse, status_code=201)
+def create_role_profile(payload: TextPayload, db: DbSession) -> ProfileResponse:
+    """Submit a job description as JSON text, return structured requirements."""
+    return _save_role(db, _require_text(payload.text))
+
+
+@router.post("/role-profile/upload", response_model=ProfileResponse, status_code=201)
+async def upload_role_profile(
+    db: DbSession, file: Annotated[UploadFile, File(description="JD PDF or .txt")]
+) -> ProfileResponse:
+    """Upload a job-description file (PDF or .txt), return structured requirements."""
+    return _save_role(db, await _file_to_text(file))
