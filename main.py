@@ -11,6 +11,17 @@ app = FastAPI()
 app.include_router(profiles_router)
 
 
+@app.get("/")
+def root():
+    """Landing probe: points manual testers at the real endpoints."""
+    return {
+        "service": "miki",
+        "health": "/health",
+        "docs": "/docs",
+        "endpoints": ["POST /candidate-profile", "POST /role-profile"],
+    }
+
+
 @app.get("/health")
 def health_check():
     """Liveness probe. Returns 200 with ``{"status": "ok"}`` when the API is up."""
