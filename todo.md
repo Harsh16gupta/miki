@@ -93,10 +93,10 @@ Context: every single LLM call in the whole project goes through this layer. Bui
 
 Context: prove the skeleton and persistence work with zero AI involved before adding any intelligence.
 
-- [ ] Define the state enum in code: `OPENING, PROBING_CLAIM, FOLLOWING_UP, ESCALATING, DE_ESCALATING, REDIRECTING, CLOSING`.
-- [ ] Define the legal-transition table in code as an explicit structure (e.g. a dict mapping each state to the set of states it's allowed to transition to). Example: `OPENING` can only go to `PROBING_CLAIM`; `CLOSING` can't transition anywhere.
-- [ ] Write a `StateMachine` class with: current_state, a `propose_transition(target_state, reason)` method that checks the proposal against the legal-transition table and the policy config, and either accepts (persists a `state_transition` row with `was_validated=True`) or rejects (persists with `was_validated=False` and a `rejection_reason`).
-- [ ] Write a manual test script that hardcodes a fixed sequence of transitions (no LLM) — some legal, some deliberately illegal — and confirms the validator accepts the legal ones and rejects the illegal ones, with rows correctly written to `state_transition`.
+- [x] Define the state enum in code: `OPENING, PROBING_CLAIM, FOLLOWING_UP, ESCALATING, DE_ESCALATING, REDIRECTING, CLOSING`.
+- [x] Define the legal-transition table in code as an explicit structure (e.g. a dict mapping each state to the set of states it's allowed to transition to). Example: `OPENING` can only go to `PROBING_CLAIM`; `CLOSING` can't transition anywhere.
+- [x] Write a `StateMachine` class with: current_state, a `propose_transition(target_state, reason)` method that checks the proposal against the legal-transition table and the policy config, and either accepts (persists a `state_transition` row with `was_validated=True`) or rejects (persists with `was_validated=False` and a `rejection_reason`).
+- [x] Write a manual test script that hardcodes a fixed sequence of transitions (no LLM) — some legal, some deliberately illegal — and confirms the validator accepts the legal ones and rejects the illegal ones, with rows correctly written to `state_transition`.
 
 **Checkpoint 5:** The state machine correctly enforces the legal-transition table and policy rules against hardcoded input, with zero LLM involvement, and every transition (accepted or rejected) is persisted and traceable.
 
