@@ -136,8 +136,8 @@ Context: prove the skeleton and persistence work with zero AI involved before ad
 
 ## PHASE 9 — Text-Only Interview Loop (full end-to-end, no voice)
 
-- [ ] Build a simple CLI or minimal text-based endpoint (`POST /session/{id}/answer`) where you type a candidate answer, and the system runs: extraction (Phase 6) → transition proposal + validation (Phase 7) → question generation (Phase 8) → returns the next question, looping until the state machine reaches `CLOSING`.
-- [ ] Add session start/end endpoints: `POST /session/start` (given candidate_profile_id + role_profile_id + mode) initializes state to `OPENING` and generates the first question; the loop above continues until closing.
+- [x] Build a simple CLI or minimal text-based endpoint (`POST /session/{id}/answer`) where you type a candidate answer, and the system runs: extraction (Phase 6) → transition proposal + validation (Phase 7) → question generation (Phase 8) → returns the next question, looping until the state machine reaches `CLOSING`.
+- [x] Add session start/end endpoints: `POST /session/start` (given candidate_profile_id + role_profile_id + mode) initializes state to `OPENING` and generates the first question; the loop above continues until closing.
 - [ ] **Run a full interview on yourself by typing answers, start to finish**, using your real resume/JD. Do not skip this — this is the most important test in the entire V1 build.
 - [ ] Fix whatever breaks. Expect this step to reveal several prompt/logic issues — that's normal and expected, this is why it's a dedicated phase before voice.
 

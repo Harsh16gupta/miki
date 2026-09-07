@@ -6,9 +6,11 @@ Run locally with: ``venv/bin/uvicorn main:app --reload``.
 from fastapi import FastAPI
 
 from app.routers.profiles import router as profiles_router
+from app.routers.sessions import router as sessions_router
 
 app = FastAPI()
 app.include_router(profiles_router)
+app.include_router(sessions_router)
 
 
 @app.get("/")
@@ -23,6 +25,9 @@ def root():
             "POST /candidate-profile/upload",
             "POST /role-profile",
             "POST /role-profile/upload",
+            "POST /session/start",
+            "POST /session/{id}/answer",
+            "GET /session/{id}",
         ],
     }
 
