@@ -238,6 +238,12 @@ def answer_session(
         )
         closing_turn = persist_miki_turn(db, session_id=session.id, text=closer)
         logger.info("session %d closed (%d turns)", session.id, closing_turn.turn_index)
+        try:
+            from app.evaluation import evaluate_if_unscored, get_normal_rubric
+
+            evaluate_if_unscored(db, session, get_normal_rubric())
+        except Exception:
+            logger.exception("session %d: eval failed, closing anyway", session.id)
         return {
             "question": closer,
             "state": InterviewState.CLOSING.value,

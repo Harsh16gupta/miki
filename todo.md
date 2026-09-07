@@ -157,11 +157,11 @@ Context: prove the skeleton and persistence work with zero AI involved before ad
 
 ## PHASE 11 — Rubric + Evaluator
 
-- [ ] Write `rubrics/normal_interview.yaml` by hand: list of evaluation dimensions (e.g. technical_correctness, depth, trade_off_reasoning, communication, claim_defensibility), and for each, a description of what a low/medium/high score actually looks like in evidence terms.
-- [ ] Add a `rubric_version` field, versioned like the policy config.
-- [ ] Write the evaluation prompt: input is the rubric, the full transcript, and all extracted claims/evidence for the session; output is structured JSON with a score per dimension AND a list of evidence references (pointing at specific claim/evidence/turn ids) justifying each score.
-- [ ] Wire as `call_llm(task_type="evaluation", ...)`, triggered when a session reaches `CLOSING`.
-- [ ] Persist results to the `evaluation` table, with `evidence_refs` populated.
+- [x] Write `rubrics/normal_interview.yaml` by hand: list of evaluation dimensions (e.g. technical_correctness, depth, trade_off_reasoning, communication, claim_defensibility), and for each, a description of what a low/medium/high score actually looks like in evidence terms.
+- [x] Add a `rubric_version` field, versioned like the policy config.
+- [x] Write the evaluation prompt: input is the rubric, the full transcript, and all extracted claims/evidence for the session; output is structured JSON with a score per dimension AND a list of evidence references (pointing at specific claim/evidence/turn ids) justifying each score.
+- [x] Wire as `call_llm(task_type="evaluation", ...)`, triggered when a session reaches `CLOSING`.
+- [x] Persist results to the `evaluation` table, with `evidence_refs` populated.
 
 **Checkpoint 11:** Ending a session automatically produces a structured, evidence-cited evaluation, stored and traceable.
 

@@ -1,0 +1,35 @@
+# Normal-interview rubric (Phase 11), written by hand — never LLM-generated.
+# Scores are 1-5 per dimension. Every score the evaluator emits must cite
+# specific evidence (claim/evidence/turn ids), not just a justification.
+# Bump `version` on any wording change; it is stamped onto evaluation rows.
+version: "0.1"
+mode: normal
+scale_min: 1
+scale_max: 5
+
+dimensions:
+  - name: technical_correctness
+    description: Are the technical statements factually right?
+    low: "1-2: core claims are wrong or contradict established facts."
+    medium: "3: broadly correct with minor inaccuracies."
+    high: "4-5: consistently accurate, precise terminology."
+  - name: depth
+    description: Does the candidate go beyond surface answers when probed?
+    low: "1-2: stays vague or repeats the same surface point under follow-up."
+    medium: "3: adds some detail when pushed but needs scaffolding."
+    high: "4-5: volunteers internals, numbers, and edge cases unprompted."
+  - name: trade_off_reasoning
+    description: Can the candidate compare approaches and justify choices?
+    low: "1-2: cannot name alternatives or says one choice is just better."
+    medium: "3: names alternatives with a partial comparison."
+    high: "4-5: explicit trade-offs with conditions for choosing each side."
+  - name: communication
+    description: Is the answer structured and easy to follow?
+    low: "1-2: rambling, hard to extract the point."
+    medium: "3: understandable but unstructured."
+    high: "4-5: clear structure, precise, right level of detail."
+  - name: claim_defensibility
+    description: When a resume claim is attacked, does it hold up?
+    low: "1-2: claim collapses or contradicts earlier statements."
+    medium: "3: partially defended, some hand-waving on measurement."
+    high: "4-5: methodology and measurement explained with specifics."

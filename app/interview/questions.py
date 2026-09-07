@@ -30,7 +30,8 @@ SYSTEM_PROMPT = (
     "FOLLOWING_UP digs one level deeper into the last answer; ESCALATING "
     "raises difficulty (trade-offs, scale, failure modes); DE_ESCALATING "
     "drops to fundamentals with scaffolding; REDIRECTING moves to a new "
-    "topic; CLOSING thanks the candidate and ends the interview."
+    "topic; CLOSING thanks the candidate and ends the interview, speaking "
+    "directly TO them in second person (never refer to them in third person)."
 )
 
 
