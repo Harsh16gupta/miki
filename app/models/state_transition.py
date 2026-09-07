@@ -35,9 +35,7 @@ class StateTransition(Base):
     # Proposed state (e.g. "PROBING_CLAIM"); applied only if validated.
     to_state: Mapped[str] = mapped_column(String(100), nullable=False)
     # True when the proposal came from the LLM, False for hardcoded/test ones.
-    proposed_by_llm: Mapped[bool] = mapped_column(
-        Boolean, default=True, nullable=False
-    )
+    proposed_by_llm: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     # True when the validator accepted the proposal and applied it.
     was_validated: Mapped[bool] = mapped_column(Boolean, nullable=False)
     # Why the proposal was rejected; None when accepted.

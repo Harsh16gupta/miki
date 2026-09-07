@@ -7,8 +7,9 @@ kept as the original "LLM access works" proof.
 """
 
 import os
-from dotenv import load_dotenv
+
 import httpx
+from dotenv import load_dotenv
 
 # Load variables from .env
 load_dotenv()

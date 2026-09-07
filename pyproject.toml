@@ -26,6 +26,8 @@ ignore = ["E402"]
 
 [tool.ruff.lint.per-file-ignores]
 "migrations/versions/*" = ["UP035", "UP007", "E501", "I001"]
+# Throwaway manual verification scripts, not production code.
+"scratch/*" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"

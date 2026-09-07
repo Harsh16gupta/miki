@@ -111,8 +111,7 @@ class StateMachine:
                 to_state=target.value,
                 accepted=False,
                 reason=(
-                    f"illegal transition {self.current_state.value}"
-                    f"->{target.value}"
+                    f"illegal transition {self.current_state.value}->{target.value}"
                 ),
                 proposed_by_llm=proposed_by_llm,
                 model_id=model_id,

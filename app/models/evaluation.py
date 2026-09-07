@@ -47,6 +47,4 @@ class Evaluation(Base):
     )
 
     # Parent session; deleted automatically when the session is deleted.
-    session: Mapped["Session"] = relationship(
-        "Session", back_populates="evaluations"
-    )
+    session: Mapped["Session"] = relationship("Session", back_populates="evaluations")

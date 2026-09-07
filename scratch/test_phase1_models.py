@@ -4,7 +4,6 @@ Tests inserting and reading back a full mock interview session across all 8 tabl
 and verifies database-level foreign key enforcement.
 """
 
-from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 
 from app.database import SessionLocal
@@ -119,7 +118,9 @@ def run_phase_1_verification():
         )
         db.add(evidence)
         db.flush()
-        print(f"[OK] Created Evidence (id={evidence.id}, type={evidence.evidence_type})")
+        print(
+            f"[OK] Created Evidence (id={evidence.id}, type={evidence.evidence_type})"
+        )
 
         # 7. Create StateTransition record
         transition = StateTransition(
@@ -133,7 +134,9 @@ def run_phase_1_verification():
         )
         db.add(transition)
         db.flush()
-        print(f"[OK] Created StateTransition (from={transition.from_state} to={transition.to_state})")
+        print(
+            f"[OK] Created StateTransition (from={transition.from_state} to={transition.to_state})"
+        )
 
         # 8. Create Evaluation record
         eval_record = Evaluation(
@@ -146,7 +149,9 @@ def run_phase_1_verification():
         )
         db.add(eval_record)
         db.flush()
-        print(f"[OK] Created Evaluation (dimension={eval_record.dimension}, score={eval_record.score})")
+        print(
+            f"[OK] Created Evaluation (dimension={eval_record.dimension}, score={eval_record.score})"
+        )
 
         # Commit transaction
         db.commit()
@@ -156,12 +161,24 @@ def run_phase_1_verification():
         retrieved_session = db.query(Session).filter(Session.id == session.id).one()
         assert len(retrieved_session.turns) == 2, "Turns relationship failed"
         assert len(retrieved_session.claims) == 1, "Claims relationship failed"
-        assert len(retrieved_session.state_transitions) == 1, "Transitions relationship failed"
-        assert len(retrieved_session.evaluations) == 1, "Evaluations relationship failed"
-        assert retrieved_session.candidate_profile.extracted_json["candidate_name"] == "Harsh Gupta"
-        assert retrieved_session.claims[0].evidence_items[0].evidence_type == EvidenceType.SUPPORTS
+        assert len(retrieved_session.state_transitions) == 1, (
+            "Transitions relationship failed"
+        )
+        assert len(retrieved_session.evaluations) == 1, (
+            "Evaluations relationship failed"
+        )
+        assert (
+            retrieved_session.candidate_profile.extracted_json["candidate_name"]
+            == "Harsh Gupta"
+        )
+        assert (
+            retrieved_session.claims[0].evidence_items[0].evidence_type
+            == EvidenceType.SUPPORTS
+        )
 
-        print(f"[OK] Relationship queries passed! Session has {len(retrieved_session.turns)} turns, {len(retrieved_session.claims)} claims.")
+        print(
+            f"[OK] Relationship queries passed! Session has {len(retrieved_session.turns)} turns, {len(retrieved_session.claims)} claims."
+        )
 
         # 9. Test Foreign Key Constraint Enforcement
         print("\n--- Testing Foreign Key Integrity Constraint ---")
@@ -174,10 +191,14 @@ def run_phase_1_verification():
         db.add(orphaned_turn)
         try:
             db.commit()
-            raise AssertionError("Foreign key constraint failed: Orphaned turn was inserted!")
+            raise AssertionError(
+                "Foreign key constraint failed: Orphaned turn was inserted!"
+            )
         except IntegrityError:
             db.rollback()
-            print("[OK] Database successfully rejected orphaned turn with IntegrityError (Foreign Key enforced)!")
+            print(
+                "[OK] Database successfully rejected orphaned turn with IntegrityError (Foreign Key enforced)!"
+            )
 
         print("\n=== Checkpoint 1 PASSED: All 8 models verified successfully! ===")
 
