@@ -28,6 +28,10 @@ SYSTEM_PROMPT = (
     "taken ONLY from the session data below). Every score must cite at "
     "least the turns it is based on; never invent ids. A low score on an "
     "empty or vague session still cites the turns that show the vagueness. "
+    "Score each dimension independently against its own bands only: a "
+    "factually wrong but detailed answer can still score high on depth and "
+    "communication, and a fluent but content-free answer can still score "
+    "high on communication. Never lower one dimension because of another. "
     "Return ONLY valid JSON, no markdown."
 )
 

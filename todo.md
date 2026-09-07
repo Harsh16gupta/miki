@@ -169,11 +169,11 @@ Context: prove the skeleton and persistence work with zero AI involved before ad
 
 ## PHASE 12 — Evaluation Calibration
 
-- [ ] Run (or reuse) 10–15 full text-based interview sessions from Phase 9/10 testing.
-- [ ] For each, manually score it yourself against the rubric, independently, before looking at Miki's evaluator output.
-- [ ] Compare your manual scores to the evaluator's scores per dimension. Note where they diverge significantly.
-- [ ] Adjust the rubric wording and/or evaluation prompt to close the biggest gaps. Re-run the comparison until agreement is reasonably close (you decide the bar — it doesn't need to be perfect, it needs to be "trustworthy enough that a big divergence would surprise you").
-- [ ] Keep this set of 10–15 hand-scored transcripts in the repo — this becomes the seed for V3's meta-evaluation harness.
+- [x] Run (or reuse) 10–15 full text-based interview sessions from Phase 9/10 testing.
+- [x] For each, manually score it yourself against the rubric, independently, before looking at Miki's evaluator output.
+- [x] Compare your manual scores to the evaluator's scores per dimension. Note where they diverge significantly.
+- [x] Adjust the rubric wording and/or evaluation prompt to close the biggest gaps. Re-run the comparison until agreement is reasonably close (you decide the bar — it doesn't need to be perfect, it needs to be "trustworthy enough that a big divergence would surprise you").
+- [x] Keep this set of 10–15 hand-scored transcripts in the repo — this becomes the seed for V3's meta-evaluation harness.
 
 **Checkpoint 12:** You have documented evidence that the evaluator's scores are reasonably aligned with your own judgment, on a fixed set of examples you can rerun later.
 
