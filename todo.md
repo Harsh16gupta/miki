@@ -181,7 +181,7 @@ Context: prove the skeleton and persistence work with zero AI involved before ad
 
 ## PHASE 13 — Post-Interview Report
 
-- [ ] Build a simple rendering (JSON API response is fine for V1, pretty HTML/UI optional) showing: per-dimension scores with cited evidence, a plain-language summary of strengths/weaknesses, which resume claims were hard to defend, and suggested study topics (can be a simple LLM call over the evaluation output, or written logic — your call).
+- [x] Build a simple rendering (JSON API response is fine for V1, pretty HTML/UI optional) showing: per-dimension scores with cited evidence, a plain-language summary of strengths/weaknesses, which resume claims were hard to defend, and suggested study topics (can be a simple LLM call over the evaluation output, or written logic — your call).
 
 **Checkpoint 13:** After a session ends, you get a report you'd actually want to read.
 

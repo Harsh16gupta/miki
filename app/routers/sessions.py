@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session as DbSession
 
 from app.database import SessionLocal
+from app.evaluation import build_report, evaluate_if_unscored, get_normal_rubric
 from app.interview import InterviewState, answer_session, load_machine, start_session
 from app.models import CandidateProfile, RoleProfile, Session
 from app.models.enums import SessionStatus
@@ -146,3 +147,19 @@ def session_detail(session_id: int, db: Db, policy: Policy) -> SessionDetail:
         policy_version=session.policy_version,
         engine_version=session.engine_version,
     )
+
+
+@router.get("/session/{session_id}/report")
+def session_report(session_id: int, db: Db) -> dict[str, Any]:
+    """Post-interview report: scores with cited evidence + coach summary."""
+    session = _get_session(db, session_id)
+    if session.status != SessionStatus.COMPLETED:
+        raise HTTPException(status_code=409, detail="Report needs a completed session")
+    rubric = get_normal_rubric()
+    try:
+        evaluate_if_unscored(db, session, rubric)
+        return build_report(db, session, rubric)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Report failed: {e}") from e

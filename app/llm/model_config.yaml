@@ -6,8 +6,10 @@
 # DEV NOTE: question_generation + evaluation are on the cheap model until
 # OpenRouter credits are topped up (claude-sonnet-4.5 returned 402). Restore
 # both to `anthropic/claude-sonnet-4.5` before quality tuning (Phase 12).
+# `report` stays cheap by design (low-stakes prose over scored data).
 
 extraction: deepseek/deepseek-chat
 state_transition_proposal: deepseek/deepseek-chat
 question_generation: deepseek/deepseek-chat
 evaluation: deepseek/deepseek-chat
+report: deepseek/deepseek-chat
