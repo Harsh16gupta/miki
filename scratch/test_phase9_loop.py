@@ -36,7 +36,9 @@ ANSWERS = [
 
 def seed_profiles() -> tuple[int, int]:
     db = SessionLocal()
-    cand = CandidateProfile(raw_resume_text="phase9 resume", extracted_json=CANDIDATE_JSON)
+    cand = CandidateProfile(
+        raw_resume_text="phase9 resume", extracted_json=CANDIDATE_JSON
+    )
     role = RoleProfile(raw_jd_text="phase9 jd", extracted_json=ROLE_JSON)
     db.add_all([cand, role])
     db.commit()
@@ -49,9 +51,11 @@ def cleanup() -> None:
     db = SessionLocal()
     for s in db.query(Session).filter(Session.engine_version == ENGINE_VERSION).all():
         db.delete(s)
-    for c in db.query(CandidateProfile).filter(
-        CandidateProfile.raw_resume_text == "phase9 resume"
-    ).all():
+    for c in (
+        db.query(CandidateProfile)
+        .filter(CandidateProfile.raw_resume_text == "phase9 resume")
+        .all()
+    ):
         db.delete(c)
     for r in db.query(RoleProfile).filter(RoleProfile.raw_jd_text == "phase9 jd").all():
         db.delete(r)
@@ -83,9 +87,11 @@ def main() -> None:
             out = r.json()
             assert out["question"].strip(), out
             assert out["claims_found"] >= 1, out
-            print(f"answer {i + 1}: state={out['state']} "
-                  f"applied={out['transition_applied']} "
-                  f"claims={out['claims_found']}")
+            print(
+                f"answer {i + 1}: state={out['state']} "
+                f"applied={out['transition_applied']} "
+                f"claims={out['claims_found']}"
+            )
             print(f"  next q: {out['question'][:110]}...")
 
         d = client.get(f"/session/{sid}").json()
@@ -120,7 +126,9 @@ def main() -> None:
 
         # Unknown session + bad payloads.
         assert client.get("/session/999999").status_code == 404
-        assert client.post("/session/999999/answer", json={"text": "x"}).status_code == 404
+        assert (
+            client.post("/session/999999/answer", json={"text": "x"}).status_code == 404
+        )
         print("CHECKPOINT 9 PASS: start -> answers -> close -> 409/404 guards")
     finally:
         cleanup()

@@ -86,8 +86,7 @@ def compute_coverage(
     """
     _ = policy
     texts = " ".join(
-        [c.claim_text for c in session.claims]
-        + [t.text for t in session.turns]
+        [c.claim_text for c in session.claims] + [t.text for t in session.turns]
     ).lower()
     words = _significant_words(texts)
     cand_json: dict[str, Any] = session.candidate_profile.extracted_json or {}

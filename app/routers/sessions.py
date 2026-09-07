@@ -81,14 +81,16 @@ def start_interview(payload: StartRequest, db: Db, policy: Policy) -> StartRespo
             status_code=400,
             detail=f"Unknown mode {payload.mode!r} (only {policy.mode!r} in V1)",
         )
-    cand = db.query(CandidateProfile).filter(
-        CandidateProfile.id == payload.candidate_profile_id
-    ).first()
+    cand = (
+        db.query(CandidateProfile)
+        .filter(CandidateProfile.id == payload.candidate_profile_id)
+        .first()
+    )
     if cand is None:
         raise HTTPException(status_code=404, detail="Candidate profile not found")
-    role = db.query(RoleProfile).filter(
-        RoleProfile.id == payload.role_profile_id
-    ).first()
+    role = (
+        db.query(RoleProfile).filter(RoleProfile.id == payload.role_profile_id).first()
+    )
     if role is None:
         raise HTTPException(status_code=404, detail="Role profile not found")
     try:
