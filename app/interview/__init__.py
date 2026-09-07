@@ -10,6 +10,7 @@ from app.interview.proposal import (
     propose_state,
     recent_claims_for_session,
 )
+from app.interview.questions import generate_question, persist_miki_turn
 from app.interview.states import LEGAL_TRANSITIONS, InterviewState
 
 __all__ = [
@@ -19,6 +20,8 @@ __all__ = [
     "TransitionContext",
     "apply_proposal",
     "context_for_session",
+    "generate_question",
+    "persist_miki_turn",
     "propose_state",
     "recent_claims_for_session",
 ]

@@ -3,8 +3,11 @@
 # Edit model ids here to change which model handles each task — no code change needed.
 # Cheap tasks (extraction, transition proposals) default to a low-cost model;
 # user-facing quality-critical tasks (questions, evaluation) default to a stronger model.
+# DEV NOTE: question_generation is on the cheap model until OpenRouter credits
+# are topped up (claude-sonnet-4.5 returned 402). Restore
+# `question_generation: anthropic/claude-sonnet-4.5` before quality tuning.
 
 extraction: deepseek/deepseek-chat
 state_transition_proposal: deepseek/deepseek-chat
-question_generation: anthropic/claude-sonnet-4.5
+question_generation: deepseek/deepseek-chat
 evaluation: anthropic/claude-sonnet-4.5

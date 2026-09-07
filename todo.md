@@ -126,9 +126,9 @@ Context: prove the skeleton and persistence work with zero AI involved before ad
 
 ## PHASE 8 — Question/Probe Generation (real LLM call)
 
-- [ ] Write the question-generation prompt: input is the validated current state, policy, target claim (if probing), candidate/role profile; output is the actual next question text (not structured JSON this time — this is user-facing text).
-- [ ] Wire as `call_llm(task_type="question_generation", ...)`.
-- [ ] Persist the generated question as a `turn` row (speaker = miki).
+- [x] Write the question-generation prompt: input is the validated current state, policy, target claim (if probing), candidate/role profile; output is the actual next question text (not structured JSON this time — this is user-facing text).
+- [x] Wire as `call_llm(task_type="question_generation", ...)`.
+- [x] Persist the generated question as a `turn` row (speaker = miki).
 
 **Checkpoint 8:** Given a validated state, you get a real, coherent interview question as output.
 
