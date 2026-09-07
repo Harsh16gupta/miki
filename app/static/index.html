@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Miki — Interview Trainer</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+  section { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+  #chat { min-height: 200px; max-height: 420px; overflow-y: auto; }
+  .miki { background: #eef4ff; border-radius: 6px; padding: .5rem; margin: .5rem 0; }
+  .cand { background: #f2f2f2; border-radius: 6px; padding: .5rem; margin: .5rem 0; text-align: right; }
+  .row { display: flex; gap: .5rem; margin-top: .5rem; }
+  textarea { flex: 1; min-height: 3rem; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border: 1px solid #ccc; padding: .3rem .5rem; text-align: left; }
+  .err { color: #b00; } .ok { color: #080; }
+  button { cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Miki — Interview Trainer</h1>
+
+<section id="setup">
+  <h2>1. Profiles</h2>
+  <div class="row">
+    <label>Resume: <input type="file" id="resumeFile" accept=".pdf,.txt"></label>
+    <button onclick="uploadProfile('candidate')">Upload resume</button>
+    <span id="candStatus"></span>
+  </div>
+  <div class="row">
+    <label>Job desc: <input type="file" id="jdFile" accept=".pdf,.txt"></label>
+    <button onclick="uploadProfile('role')">Upload JD</button>
+    <span id="roleStatus"></span>
+  </div>
+  <div class="row">
+    <button id="startBtn" onclick="startSession()" disabled>Start interview</button>
+    <span id="setupMsg"></span>
+  </div>
+</section>
+
+<section id="interview" hidden>
+  <h2>2. Interview <span id="stateBadge"></span></h2>
+  <div id="chat"></div>
+  <div class="row">
+    <textarea id="answerBox" placeholder="Type your answer…"></textarea>
+    <button onclick="sendAnswer()">Send</button>
+  </div>
+  <div class="row">
+    <button id="micBtn" onclick="toggleMic()">🎤 Speak (voice)</button>
+    <span id="voiceStatus"></span>
+  </div>
+  <div id="chatMsg"></div>
+</section>
+
+<section id="reportSec" hidden>
+  <h2>3. Report</h2>
+  <div id="report"></div>
+</section>
+
+<script>
+let candId = null, roleId = null, sessionId = null, finished = false;
+let ws = null, recorder = null, audioChunks = [];
+
+async function uploadProfile(kind) {
+  const input = document.getElementById(kind === 'candidate' ? 'resumeFile' : 'jdFile');
+  const status = document.getElementById(kind === 'candidate' ? 'candStatus' : 'roleStatus');
+  if (!input.files.length) { status.textContent = 'pick a file first'; return; }
+  status.textContent = 'uploading…';
+  const form = new FormData();
+  form.append('file', input.files[0]);
+  const url = kind === 'candidate' ? '/candidate-profile/upload' : '/role-profile/upload';
+  try {
+    const r = await fetch(url, { method: 'POST', body: form });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.detail || r.statusText);
+    if (kind === 'candidate') candId = body.id; else roleId = body.id;
+    const n = kind === 'candidate'
+      ? (body.extracted_json.claims || []).length + ' claims'
+      : (body.extracted_json.required_skills || []).length + ' req. skills';
+    status.innerHTML = '<span class="ok">id=' + body.id + ' (' + n + ')</span>';
+  } catch (e) { status.innerHTML = '<span class="err">' + e.message + '</span>'; }
+  document.getElementById('startBtn').disabled = !(candId && roleId);
+}
+
+async function startSession() {
+  const msg = document.getElementById('setupMsg');
+  msg.textContent = 'starting…';
+  try {
+    const r = await fetch('/session/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ candidate_profile_id: candId, role_profile_id: roleId }),
+    });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.detail || r.statusText);
+    sessionId = body.session_id; finished = false;
+    document.getElementById('interview').hidden = false;
+    document.getElementById('reportSec').hidden = true;
+    document.getElementById('chat').innerHTML = '';
+    addMsg('miki', body.question);
+    setState(body.state);
+    msg.innerHTML = '<span class="ok">session ' + sessionId + '</span>';
+  } catch (e) { msg.innerHTML = '<span class="err">' + e.message + '</span>'; }
+}
+
+function addMsg(who, text) {
+  const div = document.createElement('div');
+  div.className = who === 'miki' ? 'miki' : 'cand';
+  div.textContent = (who === 'miki' ? 'Miki: ' : 'You: ') + text;
+  const chat = document.getElementById('chat');
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function setState(state) {
+  document.getElementById('stateBadge').textContent = '(' + state + ')';
+}
+
+async function sendAnswer() {
+  const box = document.getElementById('answerBox');
+  const text = box.value.trim();
+  if (!text || !sessionId || finished) return;
+  box.value = '';
+  addMsg('cand', text);
+  const msg = document.getElementById('chatMsg');
+  msg.textContent = 'thinking…';
+  try {
+    const r = await fetch('/session/' + sessionId + '/answer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const body = await r.json();
+    if (!r.ok) throw new Error(body.detail || r.statusText);
+    addMsg('miki', body.question);
+    setState(body.state);
+    msg.textContent = '';
+    if (body.finished) { finished = true; loadReport(); }
+  } catch (e) { msg.innerHTML = '<span class="err">' + e.message + '</span>'; }
+}
+
+async function loadReport() {
+  const el = document.getElementById('report');
+  el.textContent = 'scoring…';
+  document.getElementById('reportSec').hidden = false;
+  try {
+    const r = await fetch('/session/' + sessionId + '/report');
+    const rep = await r.json();
+    if (!r.ok) throw new Error(rep.detail || r.statusText);
+    let html = '<table><tr><th>Dimension</th><th>Score</th><th>Cited evidence</th></tr>';
+    for (const d of rep.dimensions) {
+      const cites = [...d.refs.claims, ...d.refs.evidence, ...d.refs.turns]
+        .map(c => '#' + c.id + ' ' + c.text.slice(0, 60)).join('<br>');
+      html += '<tr><td>' + d.dimension + '</td><td>' + d.score + '</td><td><small>' + cites + '</small></td></tr>';
+    }
+    html += '</table>';
+    const list = items => '<ul>' + items.map(s => '<li>' + s + '</li>').join('') + '</ul>';
+    html += '<h3>Strengths</h3>' + list(rep.strengths)
+      + '<h3>Weaknesses</h3>' + list(rep.weaknesses)
+      + '<h3>Hard to defend</h3>' + list(rep.hard_to_defend_claims)
+      + '<h3>Study next</h3>' + list(rep.study_topics);
+    el.innerHTML = html;
+  } catch (e) { el.innerHTML = '<span class="err">' + e.message + '</span>'; }
+}
+
+// ---- voice: mic -> WS audio frames, server silence-detects, audio reply plays
+async function toggleMic() {
+  if (recorder) { stopMic(); return; }
+  if (!sessionId || finished) return;
+  const st = document.getElementById('voiceStatus');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://')
+      + location.host + '/session/' + sessionId + '/voice');
+    ws.onmessage = onVoiceMsg;
+    ws.onerror = () => { st.textContent = 'socket error'; };
+    await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
+    recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+    recorder.ondataavailable = e => { if (e.data.size && ws.readyState === 1) ws.send(e.data); };
+    recorder.start(250);
+    document.getElementById('micBtn').textContent = '⏹ Stop + send';
+    st.textContent = 'recording… speak, then Stop (or just go silent 4s)';
+  } catch (e) { st.innerHTML = '<span class="err">' + e.message + '</span>'; }
+}
+
+function stopMic(sendEnd = true) {
+  if (recorder) { recorder.stream.getTracks().forEach(t => t.stop()); recorder = null; }
+  if (ws && ws.readyState === 1 && sendEnd) ws.send(JSON.stringify({ type: 'end_of_turn' }));
+  document.getElementById('micBtn').textContent = '🎤 Speak (voice)';
+}
+
+async function onVoiceMsg(ev) {
+  const st = document.getElementById('voiceStatus');
+  const msg = JSON.parse(ev.data);
+  if (msg.type === 'ready') st.textContent = 'live — speak now';
+  else if (msg.type === 'answer') addMsg('cand', '[voice] ' + msg.transcript);
+  else if (msg.type === 'question') {
+    addMsg('miki', msg.text); setState('');
+    if (msg.finished) { finished = true; stopMic(false); ws.close(); loadReport(); }
+  }
+  else if (msg.type === 'audio') {
+    const audio = new Audio('data:audio/mp3;base64,' + msg.data_b64);
+    audio.play();
+  }
+  else if (msg.type === 'done') { finished = true; stopMic(false); ws.close(); loadReport(); }
+  else if (msg.type === 'error') st.innerHTML = '<span class="err">' + msg.detail + '</span>';
+}
+</script>
+</body>
+</html>

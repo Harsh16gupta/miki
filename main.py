@@ -4,6 +4,7 @@ Run locally with: ``venv/bin/uvicorn main:app --reload``.
 """
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.routers.profiles import router as profiles_router
 from app.routers.sessions import router as sessions_router
@@ -13,6 +14,7 @@ app = FastAPI()
 app.include_router(profiles_router)
 app.include_router(sessions_router)
 app.include_router(voice_router)
+app.mount("/ui", StaticFiles(directory="app/static", html=True), name="ui")
 
 
 @app.get("/")
@@ -20,6 +22,7 @@ def root():
     """Landing probe: points manual testers at the real endpoints."""
     return {
         "service": "miki",
+        "ui": "/ui",
         "health": "/health",
         "docs": "/docs",
         "endpoints": [
