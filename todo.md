@@ -115,10 +115,10 @@ Context: prove the skeleton and persistence work with zero AI involved before ad
 
 ## PHASE 7 — Transition Proposal (real LLM call) + Validation Integration
 
-- [ ] Write the state-transition-proposal prompt: input is current state, policy config, recent claims/evidence, coverage-so-far; output is structured JSON `{proposed_state, target_claim_id, reason}`.
-- [ ] Wire as `call_llm(task_type="state_transition_proposal", ...)`.
-- [ ] Feed the LLM's proposal into the `StateMachine.propose_transition()` method built in Phase 5 — do NOT let the LLM's proposal be applied directly; it must go through the validator.
-- [ ] Test: manually construct a scenario likely to produce an illegal proposal (e.g. prompt state such that the model might propose closing too early) and confirm the validator correctly rejects it and the session continues in a sane state rather than crashing.
+- [x] Write the state-transition-proposal prompt: input is current state, policy config, recent claims/evidence, coverage-so-far; output is structured JSON `{proposed_state, target_claim_id, reason}`.
+- [x] Wire as `call_llm(task_type="state_transition_proposal", ...)`.
+- [x] Feed the LLM's proposal into the `StateMachine.propose_transition()` method built in Phase 5 — do NOT let the LLM's proposal be applied directly; it must go through the validator.
+- [x] Test: manually construct a scenario likely to produce an illegal proposal (e.g. prompt state such that the model might propose closing too early) and confirm the validator correctly rejects it and the session continues in a sane state rather than crashing.
 
 **Checkpoint 7:** The LLM proposes transitions, but only validator-approved transitions are ever actually applied — and you have a concrete example of an illegal proposal being caught.
 
