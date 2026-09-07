@@ -29,8 +29,9 @@ SYSTEM_PROMPT = (
     '"target_claim_id" (integer id of the claim to probe next, or null when '
     "the move is not claim-specific), "
     '"reason" (one sentence tying the choice to the policy and evidence). '
-    "Prefer FOLLOWING_UP when the latest answer is vague; prefer ESCALATING "
-    "after consecutive strong answers; propose CLOSING only when the coverage "
+    "Prefer FOLLOWING_UP when the latest answer is vague; propose ESCALATING "
+    "once there have been 2 consecutive strong, specific answers in the same "
+    "category instead of further FOLLOWING_UP; propose CLOSING only when the "
     "numbers show minimums met AND elapsed time passed the target. "
     "Return ONLY valid JSON, no markdown."
 )

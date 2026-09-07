@@ -147,9 +147,9 @@ Context: prove the skeleton and persistence work with zero AI involved before ad
 
 ## PHASE 10 — Synthetic State-Machine Test Cases
 
-- [ ] Write 5–8 scripted "fake candidate" answer sequences designed to specifically trigger: a probe-worthy claim, a weak/vague answer, a strong answer that should escalate difficulty, two weak answers in a row that should NOT over-escalate, an answer contradicting an earlier one.
-- [ ] Run each scripted sequence through the Phase 9 loop (feeding the fake answers programmatically instead of typing) and manually verify the resulting state transitions match what the policy *should* produce.
-- [ ] Where they don't match, fix the transition-proposal prompt or the policy config (not just a one-off code patch) — the goal is to make correct behavior emerge from the config/prompt design, not a special case.
+- [x] Write 5–8 scripted "fake candidate" answer sequences designed to specifically trigger: a probe-worthy claim, a weak/vague answer, a strong answer that should escalate difficulty, two weak answers in a row that should NOT over-escalate, an answer contradicting an earlier one.
+- [x] Run each scripted sequence through the Phase 9 loop (feeding the fake answers programmatically instead of typing) and manually verify the resulting state transitions match what the policy *should* produce.
+- [x] Where they don't match, fix the transition-proposal prompt or the policy config (not just a one-off code patch) — the goal is to make correct behavior emerge from the config/prompt design, not a special case.
 
 **Checkpoint 10:** You have a repeatable regression test you can rerun any time you touch the state machine, transition prompt, or policy config.
 
