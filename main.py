@@ -3,6 +3,8 @@
 Run locally with: ``venv/bin/uvicorn main:app --reload``.
 """
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
@@ -10,11 +12,13 @@ from app.routers.profiles import router as profiles_router
 from app.routers.sessions import router as sessions_router
 from app.routers.voice import router as voice_router
 
+STATIC_DIR = Path(__file__).resolve().parent / "app" / "static"
+
 app = FastAPI()
 app.include_router(profiles_router)
 app.include_router(sessions_router)
 app.include_router(voice_router)
-app.mount("/ui", StaticFiles(directory="app/static", html=True), name="ui")
+app.mount("/ui", StaticFiles(directory=str(STATIC_DIR), html=True), name="ui")
 
 
 @app.get("/")
