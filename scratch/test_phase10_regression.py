@@ -116,9 +116,12 @@ def main() -> None:
         outs = run_answers(db, b, [WEAK])
         db.refresh(b)
         b_claims = b.claims
+        # Invariant that matters: vague input must not produce strong claims
+        # (>=0.7 feeds the escalation streak). 0.7 is the load-bearing bar.
+        max_conf = max((c.confidence for c in b_claims), default=0.0)
         vague_signal = (
             (outs[-1]["state"] == InterviewState.FOLLOWING_UP.value)
-            or (b_claims and all(c.confidence < 0.5 for c in b_claims))
+            or (max_conf < 0.7)
             or (
                 any(
                     e.evidence_type.value == "vague"

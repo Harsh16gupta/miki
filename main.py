@@ -7,10 +7,12 @@ from fastapi import FastAPI
 
 from app.routers.profiles import router as profiles_router
 from app.routers.sessions import router as sessions_router
+from app.routers.voice import router as voice_router
 
 app = FastAPI()
 app.include_router(profiles_router)
 app.include_router(sessions_router)
+app.include_router(voice_router)
 
 
 @app.get("/")
@@ -28,6 +30,8 @@ def root():
             "POST /session/start",
             "POST /session/{id}/answer",
             "GET /session/{id}",
+            "GET /session/{id}/report",
+            "WS /session/{id}/voice",
         ],
     }
 

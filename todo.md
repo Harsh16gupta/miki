@@ -194,9 +194,9 @@ Context: the interview engine (Phases 5–9) has a strict text-in/text-out contr
 - [ ] Sign up for your chosen STT provider, get API access, confirm streaming support.
 - [ ] Sign up for your chosen TTS provider, get API access.
 - [ ] First test STT and TTS completely standalone, with pre-recorded audio files (not live mic, not WebSocket yet) — confirm you can send an audio file and get correct transcribed text back, and send text and get correct synthesized audio back.
-- [ ] Build the WebSocket endpoint (`/session/{id}/voice`) that: receives streamed audio chunks from the client, feeds them to STT, accumulates transcribed text.
-- [ ] Implement silence-based turn detection: using the `silence_threshold_seconds` from the policy config, detect when the candidate has stopped talking (via STT's voice activity detection or a timing-based heuristic) and only then treat the accumulated transcript as a complete "turn," feeding it into the same `POST /session/{id}/answer` logic built in Phase 9.
-- [ ] On receiving the next question text from the engine, call TTS and stream the resulting audio back to the client over the WebSocket.
+- [x] Build the WebSocket endpoint (`/session/{id}/voice`) that: receives streamed audio chunks from the client, feeds them to STT, accumulates transcribed text.
+- [x] Implement silence-based turn detection: using the `silence_threshold_seconds` from the policy config, detect when the candidate has stopped talking (via STT's voice activity detection or a timing-based heuristic) and only then treat the accumulated transcript as a complete "turn," feeding it into the same `POST /session/{id}/answer` logic built in Phase 9.
+- [x] On receiving the next question text from the engine, call TTS and stream the resulting audio back to the client over the WebSocket.
 - [ ] Test with a simple browser client or minimal script capturing real mic input, round-tripping through the whole pipeline.
 
 **Checkpoint 14:** You can speak an answer, have it transcribed, processed by the unchanged text-engine, and hear Miki's spoken response back — with the engine code itself untouched from Phase 9–13.
