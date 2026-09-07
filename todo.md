@@ -205,7 +205,7 @@ Context: the interview engine (Phases 5–9) has a strict text-in/text-out contr
 
 ## PHASE 15 — Full End-to-End Voice Interview
 
-- [ ] Run one complete real voice interview on yourself, start to finish, using your actual resume and a real job description, entirely by talking.
+- [ ] Run one complete real voice interview on yourself, start to finish, using your actual resume and a real job description, entirely by talking. (Text end-to-end verified in `scratch/test_phase15_e2e.py`; voice run blocked on STT/TTS keys + mic.)
 - [ ] Review the resulting transcript, state-transition trace (via Langfuse + the `state_transition` table), and evaluation report together. Confirm they're coherent and match your memory of how the interview actually went.
 - [ ] Fix whatever's broken. This is your V1 completion milestone.
 
