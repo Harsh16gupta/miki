@@ -12,7 +12,12 @@ from app.routers.profiles import router as profiles_router
 from app.routers.sessions import router as sessions_router
 from app.routers.voice import router as voice_router
 
-STATIC_DIR = Path(__file__).resolve().parent / "app" / "static"
+ROOT = Path(__file__).resolve().parent
+# Production build output (``npm run build`` in frontend/) takes precedence;
+# legacy ``app/static/index.html`` remains as a fallback until removed.
+FRONTEND_DIST = ROOT / "frontend" / "dist"
+LEGACY_STATIC = ROOT / "app" / "static"
+STATIC_DIR = FRONTEND_DIST if (FRONTEND_DIST / "index.html").exists() else LEGACY_STATIC
 
 app = FastAPI()
 app.include_router(profiles_router)
