@@ -107,14 +107,19 @@ async def voice_session(ws: WebSocket, session_id: int) -> None:
             try:
                 message = await asyncio.wait_for(ws.receive(), timeout=threshold)
             except TimeoutError:
-                if buffer and decide_turn_end(
-                    last_frame_at, time.monotonic(), threshold
+                if (
+                    buffer
+                    and len(buffer) >= 1000
+                    and decide_turn_end(last_frame_at, time.monotonic(), threshold)
                 ):
                     finished = await _finalize(ws, db, session, buffer)
                     buffer = bytearray()
                     db.refresh(session)
                     if finished:
                         return
+                elif buffer and len(buffer) < 1000:
+                    # Clear stray tiny noise chunks that would fail STT
+                    buffer = bytearray()
                 continue
             if message.get("bytes") is not None:
                 chunk: bytes = message["bytes"]

@@ -2,6 +2,7 @@
 
 from app.voice.providers import (
     DeepgramSTT,
+    DeepgramTTS,
     ElevenLabsTTS,
     ProviderNotConfigured,
     get_stt,
@@ -11,6 +12,7 @@ from app.voice.turns import decide_turn_end, process_voice_turn
 
 __all__ = [
     "DeepgramSTT",
+    "DeepgramTTS",
     "ElevenLabsTTS",
     "ProviderNotConfigured",
     "decide_turn_end",

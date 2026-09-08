@@ -48,6 +48,37 @@ class DeepgramSTT:
             raise RuntimeError(f"STT returned unexpected body: {e}") from e
 
 
+class DeepgramTTS:
+    """Text-to-speech via Deepgram Aura. Returns MP3 bytes.
+
+    Uses the free $200 credits on Deepgram with no paid plan required.
+    """
+
+    URL = "https://api.deepgram.com/v1/speak"
+
+    def __init__(self, api_key: str, model: str = "aura-asteria-en") -> None:
+        self.api_key = api_key
+        self.model = model
+
+    async def synthesize(self, text: str) -> bytes:
+        """Synthesize one reply using Deepgram Aura. Returns MP3 audio bytes."""
+        params = {"model": self.model}
+        headers = {
+            "Authorization": f"Token {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                self.URL, params=params, headers=headers, json={"text": text}
+            )
+        if response.status_code >= 400:
+            raise RuntimeError(
+                f"Deepgram TTS failed: HTTP {response.status_code}: "
+                f"{response.text[:300]}"
+            )
+        return response.content
+
+
 class ElevenLabsTTS:
     """Text-to-speech via ElevenLabs. Returns MP3 bytes."""
 
@@ -82,13 +113,36 @@ def get_stt() -> DeepgramSTT:
     return DeepgramSTT(key)
 
 
-def get_tts() -> ElevenLabsTTS:
-    """Build the TTS client from ``ELEVENLABS_API_KEY`` (+ voice id)."""
-    key = os.getenv("ELEVENLABS_API_KEY")
-    if not key:
-        raise ProviderNotConfigured(
-            "ELEVENLABS_API_KEY is not set. Sign up at "
-            "https://elevenlabs.io, create a key, add it to .env."
-        )
-    voice = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
-    return ElevenLabsTTS(key, voice)
+def get_tts() -> DeepgramTTS | ElevenLabsTTS:
+    """Build the TTS client.
+
+    Defaults to Deepgram Aura (100% free with Deepgram credits, no paid plan required).
+    Uses ElevenLabs if explicitly configured via TTS_PROVIDER=elevenlabs.
+    """
+    provider = os.getenv("TTS_PROVIDER", "deepgram").lower().strip()
+    if provider == "elevenlabs":
+        key = os.getenv("ELEVENLABS_API_KEY")
+        if not key:
+            raise ProviderNotConfigured(
+                "ELEVENLABS_API_KEY is not set. Sign up at "
+                "https://elevenlabs.io, create a key, add it to .env."
+            )
+        voice = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
+        return ElevenLabsTTS(key, voice)
+
+    # Default to Deepgram Aura using the existing DEEPGRAM_API_KEY
+    deepgram_key = os.getenv("DEEPGRAM_API_KEY")
+    if deepgram_key:
+        voice_model = os.getenv("DEEPGRAM_VOICE_MODEL", "aura-asteria-en")
+        return DeepgramTTS(deepgram_key, model=voice_model)
+
+    # If DEEPGRAM_API_KEY is missing, check if ELEVENLABS_API_KEY is provided
+    eleven_key = os.getenv("ELEVENLABS_API_KEY")
+    if eleven_key:
+        voice = os.getenv("ELEVENLABS_VOICE_ID", "21m00Tcm4TlvDq8ikWAM")
+        return ElevenLabsTTS(eleven_key, voice)
+
+    raise ProviderNotConfigured(
+        "No voice provider configured. Set DEEPGRAM_API_KEY in .env to use "
+        "Deepgram (https://console.deepgram.com) for both STT and TTS."
+    )

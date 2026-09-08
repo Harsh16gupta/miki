@@ -163,46 +163,119 @@ async function loadReport() {
 }
 
 // ---- voice: mic -> WS audio frames, server silence-detects, audio reply plays
+function speakBrowserFallback(text) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 1.0;
+    window.speechSynthesis.speak(u);
+  }
+}
+
+async function ensureSocket() {
+  if (ws && ws.readyState === WebSocket.OPEN) return ws;
+  if (ws) {
+    try { ws.close(); } catch (_) {}
+    ws = null;
+  }
+  const st = document.getElementById('voiceStatus');
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://')
+    + location.host + '/session/' + sessionId + '/voice');
+  ws.onmessage = onVoiceMsg;
+  ws.onerror = () => { st.textContent = 'socket error'; };
+  ws.onclose = () => { ws = null; };
+  await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
+  return ws;
+}
+
 async function toggleMic() {
-  if (recorder) { stopMic(); return; }
+  if (recorder && recorder.state !== 'inactive') {
+    stopMic(true);
+    return;
+  }
   if (!sessionId || finished) return;
   const st = document.getElementById('voiceStatus');
   try {
+    st.textContent = 'connecting…';
+    await ensureSocket();
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://')
-      + location.host + '/session/' + sessionId + '/voice');
-    ws.onmessage = onVoiceMsg;
-    ws.onerror = () => { st.textContent = 'socket error'; };
-    await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
+    // Always create a fresh MediaRecorder per turn so the WebM container header is present
     recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-    recorder.ondataavailable = e => { if (e.data.size && ws.readyState === 1) ws.send(e.data); };
+    recorder.ondataavailable = e => {
+      if (e.data.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(e.data);
+      }
+    };
     recorder.start(250);
     document.getElementById('micBtn').textContent = '⏹ Stop + send';
-    st.textContent = 'recording… speak, then Stop (or just go silent 4s)';
-  } catch (e) { st.innerHTML = '<span class="err">' + e.message + '</span>'; }
+    st.textContent = '🎙️ Recording… speak, then click Stop (or go silent 4s)';
+  } catch (e) {
+    st.innerHTML = '<span class="err">' + e.message + '</span>';
+  }
 }
 
 function stopMic(sendEnd = true) {
-  if (recorder) { recorder.stream.getTracks().forEach(t => t.stop()); recorder = null; }
-  if (ws && ws.readyState === 1 && sendEnd) ws.send(JSON.stringify({ type: 'end_of_turn' }));
+  if (recorder) {
+    try {
+      if (recorder.state !== 'inactive') recorder.stop();
+      recorder.stream.getTracks().forEach(t => t.stop());
+    } catch (_) {}
+    recorder = null;
+  }
+  if (ws && ws.readyState === WebSocket.OPEN && sendEnd) {
+    ws.send(JSON.stringify({ type: 'end_of_turn' }));
+  }
   document.getElementById('micBtn').textContent = '🎤 Speak (voice)';
 }
+
+let lastQuestionText = '';
 
 async function onVoiceMsg(ev) {
   const st = document.getElementById('voiceStatus');
   const msg = JSON.parse(ev.data);
-  if (msg.type === 'ready') st.textContent = 'live — speak now';
-  else if (msg.type === 'answer') addMsg('cand', '[voice] ' + msg.transcript);
-  else if (msg.type === 'question') {
-    addMsg('miki', msg.text); setState('');
-    if (msg.finished) { finished = true; stopMic(false); ws.close(); loadReport(); }
+  if (msg.type === 'ready') {
+    st.textContent = 'Connected — click Speak to answer';
+  } else if (msg.type === 'answer') {
+    // Stop recording immediately so mic does not record Miki or send headless frames
+    stopMic(false);
+    addMsg('cand', '[voice] ' + msg.transcript);
+    st.textContent = 'Miki is thinking…';
+  } else if (msg.type === 'question') {
+    lastQuestionText = msg.text;
+    addMsg('miki', msg.text);
+    setState('');
+    st.textContent = 'Miki is speaking…';
+    if (msg.finished) {
+      finished = true;
+      stopMic(false);
+      if (ws) ws.close();
+      loadReport();
+    }
+  } else if (msg.type === 'audio') {
+    st.textContent = 'Miki is speaking…';
+    try {
+      const audio = new Audio('data:audio/mp3;base64,' + msg.data_b64);
+      audio.onended = () => {
+        st.textContent = 'Ready — click Speak to answer';
+      };
+      audio.play().catch(e => {
+        console.warn('Audio play failed, using browser speech fallback:', e);
+        speakBrowserFallback(lastQuestionText);
+      });
+    } catch (e) {
+      speakBrowserFallback(lastQuestionText);
+    }
+  } else if (msg.type === 'done') {
+    finished = true;
+    stopMic(false);
+    if (ws) ws.close();
+    loadReport();
+  } else if (msg.type === 'error') {
+    stopMic(false);
+    st.innerHTML = '<span class="err">' + msg.detail + '</span>';
+    // If TTS failed on server, still speak question via browser TTS
+    if (lastQuestionText) speakBrowserFallback(lastQuestionText);
   }
-  else if (msg.type === 'audio') {
-    const audio = new Audio('data:audio/mp3;base64,' + msg.data_b64);
-    audio.play();
-  }
-  else if (msg.type === 'done') { finished = true; stopMic(false); ws.close(); loadReport(); }
-  else if (msg.type === 'error') st.innerHTML = '<span class="err">' + msg.detail + '</span>';
 }
 </script>
 </body>
