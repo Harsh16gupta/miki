@@ -211,6 +211,13 @@ export function useInterview() {
     setMessages((m) => [...m, { id: msgSeq++, who: "miki", text }]);
   }, []);
 
+  const pushCandidateVoice = useCallback((text: string) => {
+    setMessages((m) => [
+      ...m,
+      { id: msgSeq++, who: "you", text: `[voice] ${text}`, voice: true },
+    ]);
+  }, []);
+
   const reset = useCallback(() => {
     setStage("setup");
     setStatus("idle");
@@ -241,6 +248,7 @@ export function useInterview() {
     answer,
     loadReport,
     pushMikiVoice,
+    pushCandidateVoice,
     setInterviewState,
     reset,
   };

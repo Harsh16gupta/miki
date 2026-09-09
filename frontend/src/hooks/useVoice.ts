@@ -79,7 +79,7 @@ export function useVoice(interview: InterviewApi) {
           // Stop recording so the mic never captures Miki's reply.
           cleanup(false);
           setVoiceStatus("Miki is thinking…");
-          void interview.answer(ev.transcript, { fromVoice: true });
+          interview.pushCandidateVoice(ev.transcript);
           break;
         case "question":
           lastQuestionRef.current = ev.text;
