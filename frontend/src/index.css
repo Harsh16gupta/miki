@@ -94,3 +94,24 @@ body {
 .msg-in {
   animation: fade-up 0.25s ease-out;
 }
+
+/* ---- T7 demo teaser equalizer (decorative simulation, not live audio) ---- */
+@keyframes demo-eq {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.demo-bar {
+  animation: demo-eq 1.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-bar {
+    animation: none !important;
+  }
+}
