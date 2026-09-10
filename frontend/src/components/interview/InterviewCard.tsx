@@ -17,8 +17,8 @@ export default function InterviewCard({ interview, voice }: Props) {
   return (
     <GlassCard className="px-6 py-6 sm:px-8" >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-white">
-          <span className="mr-2 text-[#d6c7a5]">02</span> Interview
+        <h2 className="text-lg font-medium tracking-tight text-white sm:text-xl">
+          <span className="mr-2 font-mono text-xs text-amber-300">02</span> Interview
         </h2>
         <div className="flex flex-wrap gap-1.5">
           {interview.sessionId != null && (
@@ -38,7 +38,7 @@ export default function InterviewCard({ interview, voice }: Props) {
 
       <div className="mt-4">
         {!active ? (
-          <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-8 text-center text-sm text-[#a8a29e]">
+          <div className="rounded-xl border border-white/[0.08] bg-black/30 px-4 py-8 text-center text-sm text-zinc-400">
             Complete setup to unlock the arena.
           </div>
         ) : (

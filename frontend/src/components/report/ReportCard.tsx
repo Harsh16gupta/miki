@@ -5,14 +5,14 @@ import ScoreBar, { EvidenceDrawer } from "./ScoreBar";
 
 function BulletList({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <h4 className="mb-2 text-xs font-semibold tracking-[0.16em] text-[#d6c7a5]">
+    <div className="rounded-xl border border-white/[0.08] bg-black/30 p-4">
+      <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-amber-300">
         {title.toUpperCase()}
       </h4>
       {items.length === 0 ? (
-        <p className="text-sm text-[#a8a29e]">Nothing recorded.</p>
+        <p className="text-sm text-zinc-400">Nothing recorded.</p>
       ) : (
-        <ul className="list-disc space-y-1.5 pl-5 text-sm text-[#f5f3ee]/90">
+        <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-300">
           {items.map((s, i) => (
             <li key={i}>{s}</li>
           ))}
@@ -38,8 +38,8 @@ export default function ReportCard({ interview }: { interview: InterviewApi }) {
   return (
     <GlassCard className="px-6 py-6 sm:px-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-white">
-          <span className="mr-2 text-[#d6c7a5]">03</span> Report
+        <h2 className="text-lg font-medium tracking-tight text-white sm:text-xl">
+          <span className="mr-2 font-mono text-xs text-amber-300">03</span> Report
         </h2>
         <div className="flex flex-wrap gap-1.5">
           <PillBadge tone="gold">rubric {report.rubric_version}</PillBadge>
@@ -47,10 +47,10 @@ export default function ReportCard({ interview }: { interview: InterviewApi }) {
         </div>
       </div>
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+      <div className="mt-4 overflow-hidden rounded-xl border border-white/[0.08]">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-white/10 bg-white/[0.04] text-[11px] tracking-[0.14em] text-[#a8a29e]">
+            <tr className="border-b border-white/[0.08] bg-white/[0.04] text-[11px] tracking-[0.14em] text-zinc-400">
               <th className="px-4 py-2.5 font-medium">DIMENSION</th>
               <th className="px-4 py-2.5 font-medium">SCORE</th>
               <th className="hidden px-4 py-2.5 font-medium sm:table-cell">
@@ -69,7 +69,7 @@ export default function ReportCard({ interview }: { interview: InterviewApi }) {
                 </td>
                 <td className="px-4 py-3">
                   <span className="flex items-center gap-2">
-                    <span className="text-[#e5c878]">{d.score.toFixed(1)}</span>
+                    <span className="font-mono text-xs tabular-nums text-zinc-50">{d.score.toFixed(1)}</span>
                     <ScoreBar score={d.score} />
                   </span>
                 </td>
@@ -87,7 +87,7 @@ export default function ReportCard({ interview }: { interview: InterviewApi }) {
         {report.dimensions.map((d) => (
           <div
             key={d.dimension}
-            className="rounded-2xl border border-white/10 bg-black/20 p-3"
+            className="rounded-xl border border-white/[0.08] bg-black/30 p-3"
           >
             <p className="mb-1.5 text-xs font-medium text-white">
               {d.dimension}

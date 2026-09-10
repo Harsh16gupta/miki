@@ -19,24 +19,24 @@ export default function SiteHeader({ onReset }: { onReset: () => void }) {
   }, []);
 
   return (
-    <header className="glass glass-sheen flex items-center justify-between px-5 py-3">
-      <div className="glass-inner flex w-full items-center justify-between">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-white/[0.08] bg-[#09090b]/90 px-5 backdrop-blur-md">
+      <div className="flex w-full items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#d6c7a5]/40 bg-[#d6c7a5]/10 text-sm font-bold tracking-widest text-[#e5c878]">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm font-bold tracking-widest text-zinc-950">
             M
           </div>
           <div>
-            <p className="text-sm font-semibold tracking-[0.2em] text-[#f5f3ee]">
-              MIKI
+            <p className="text-sm font-semibold tracking-tight text-zinc-50">
+              Miki
             </p>
-            <p className="text-[11px] tracking-wide text-[#a8a29e]">
-              Interview Trainer
+            <p className="text-[11px] tracking-wide text-zinc-400">
+              Evidence-Grounded Trainer
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-[#a8a29e]"
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.06] px-2.5 py-0.5 text-xs font-medium text-zinc-300"
             title="Backend health"
           >
             <span
@@ -44,7 +44,7 @@ export default function SiteHeader({ onReset }: { onReset: () => void }) {
                 ready == null
                   ? "h-1.5 w-1.5 rounded-full bg-white/30"
                   : ready
-                    ? "live-dot h-1.5 w-1.5 rounded-full bg-[#22d3ee]"
+                    ? "live-dot h-1.5 w-1.5 rounded-full bg-cyan-500"
                     : "h-1.5 w-1.5 rounded-full bg-red-400"
               }
             />
@@ -54,16 +54,16 @@ export default function SiteHeader({ onReset }: { onReset: () => void }) {
             href="/docs"
             target="_blank"
             rel="noreferrer"
-            className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-[#a8a29e] transition hover:border-white/25 hover:text-white sm:inline"
+            className="hidden rounded-lg px-3 py-1.5 text-sm text-neutral-400 transition-colors hover:bg-white/[0.05] hover:text-white sm:inline"
           >
             API docs
           </a>
           <button
             type="button"
             onClick={onReset}
-            className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] text-[#a8a29e] transition hover:border-white/25 hover:text-white"
+            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/[0.08] hover:text-white"
           >
-            Reset
+            New Session
           </button>
         </div>
       </div>

@@ -43,7 +43,7 @@ export default function Composer({
           rows={2}
           placeholder="Type your answer… (Enter to send)"
           disabled={busy && !recording}
-          className="chat-scroll min-h-[3.2rem] flex-1 resize-y rounded-2xl border border-white/12 bg-black/30 px-3.5 py-2.5 text-sm text-white placeholder:text-[#a8a29e]/70 focus:border-[#22d3ee]/50 focus:outline-none"
+          className="chat-scroll min-h-[3.2rem] flex-1 resize-y rounded-xl border border-white/[0.06] bg-[rgba(24,24,27,0.6)] px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-500 focus:border-white/25 focus:outline-none"
         />
         <div className="flex flex-col gap-2">
           <button
@@ -51,7 +51,7 @@ export default function Composer({
             onClick={send}
             disabled={!draft.trim() || busy}
             aria-label="Send answer"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f5f3ee] text-[#0b1120] transition enabled:hover:bg-white disabled:opacity-40"
+            className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-zinc-950 shadow-sm transition-colors hover:bg-neutral-200 disabled:opacity-50"
           >
             <Send size={16} />
           </button>
@@ -62,10 +62,10 @@ export default function Composer({
             aria-label={recording ? "Stop recording" : "Start voice recording"}
             title={voiceStatus}
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-full border transition",
+              "flex h-10 w-10 items-center justify-center rounded-lg border transition-colors focus-ring",
               recording
-                ? "voice-live border-[#22d3ee]/60 bg-[#22d3ee]/15 text-[#7dd3fc]"
-                : "border-white/15 bg-white/5 text-[#a8a29e] hover:border-white/30 hover:text-white",
+                ? "voice-live border-cyan-500/20 bg-cyan-500/10 text-cyan-400"
+                : "border-white/10 bg-white/[0.03] text-neutral-400 hover:bg-white/[0.08] hover:text-white",
               !canVoice && "cursor-not-allowed opacity-40",
             )}
           >
@@ -73,7 +73,7 @@ export default function Composer({
           </button>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-[#a8a29e]" role="status">
+      <p className="mt-2 text-[11px] text-zinc-500" role="status">
         {recording ? "● " : ""}
         {voiceStatus}
       </p>

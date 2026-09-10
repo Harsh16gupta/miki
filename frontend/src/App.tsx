@@ -29,9 +29,8 @@ export default function App() {
         </div>
         <InterviewCard interview={interview} voice={voice} />
         <ReportCard interview={interview} />
-        <footer className="pb-4 pt-2 text-center text-[11px] text-[#a8a29e]/70">
-          Miki · single-session trainer · no account · your files stay in this
-          backend
+        <footer className="pb-4 pt-2 text-center text-[11px] text-zinc-500">
+          Miki · evidence-grounded interview trainer
         </footer>
       </div>
       {interview.error && (

@@ -12,8 +12,8 @@ export default function SetupCard({ interview }: { interview: InterviewApi }) {
   return (
     <GlassCard className="px-6 py-6 sm:px-8" >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-white">
-          <span className="mr-2 text-[#d6c7a5]">01</span> Profiles
+        <h2 className="text-lg font-medium tracking-tight text-white sm:text-xl">
+          <span className="mr-2 font-mono text-xs text-amber-300">01</span> Profiles
         </h2>
         <div className="flex gap-1.5">
           {profiles.candId != null && (
@@ -55,7 +55,7 @@ export default function SetupCard({ interview }: { interview: InterviewApi }) {
           type="button"
           disabled={!canStart}
           onClick={() => void interview.start()}
-          className="inline-flex items-center gap-2 rounded-full bg-[#f5f3ee] px-5 py-2.5 text-sm font-semibold text-[#0b1120] transition enabled:hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-zinc-950 shadow-sm transition-colors hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Play size={15} />
           {status === "starting" ? "Starting…" : "Start interview"}
@@ -63,7 +63,7 @@ export default function SetupCard({ interview }: { interview: InterviewApi }) {
         {status === "starting" && <Spinner label="Generating opening question…" />}
         {status === "uploading" && <Spinner label="Parsing document…" />}
         {!canStart && status !== "starting" && (
-          <p className="text-xs text-[#a8a29e]">
+          <p className="text-xs text-zinc-500">
             Upload both files to unlock the interview.
           </p>
         )}

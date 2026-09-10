@@ -36,22 +36,22 @@ export default function Dropzone({ label, hint, fileName, meta, busy, onFile }: 
         if (f) onFile(f);
       }}
       className={cn(
-        "cursor-pointer rounded-2xl border border-dashed p-5 transition",
+        "cursor-pointer rounded-xl border border-dashed p-5 transition focus-ring",
         dragOver
-          ? "border-[#22d3ee]/60 bg-[#22d3ee]/5"
+          ? "border-cyan-500/60 bg-cyan-500/5"
           : "border-white/15 bg-white/[0.03] hover:border-white/30",
       )}
     >
       <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-[#d6c7a5]">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-amber-300">
           <FileUp size={16} />
         </span>
         <div className="min-w-0">
           <p className="text-sm font-medium text-white">{label}</p>
-          <p className="mt-0.5 truncate text-xs text-[#a8a29e]">
+          <p className="mt-0.5 truncate text-xs text-zinc-400">
             {fileName || hint}
           </p>
-          <p className="mt-2 text-[11px] text-[#7dd3fc]">
+          <p className="mt-2 font-mono text-[11px] text-cyan-300">
             {busy ? "Parsing…" : meta}
           </p>
         </div>

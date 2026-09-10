@@ -1,16 +1,13 @@
 import type { ReactNode } from "react";
-import { cn } from "../../lib/cn";
+import { Card } from "../common/Primitives";
 
-interface Props {
+/** @deprecated Use {@link Card} from ../common/Primitives directly. */
+export default function GlassCard({
+  children,
+  className,
+}: {
   children: ReactNode;
   className?: string;
-}
-
-/** Frosted dark-glass container with specular sheen. */
-export default function GlassCard({ children, className }: Props) {
-  return (
-    <section className={cn("glass glass-sheen", className)}>
-      <div className="glass-inner">{children}</div>
-    </section>
-  );
+}) {
+  return <Card className={className}>{children}</Card>;
 }
