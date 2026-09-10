@@ -144,6 +144,11 @@ function UserMenu() {
 }
 
 export default function Navbar({ onReset }: { onReset: () => void }) {
+  const navigate = useNavigate();
+  const handleReset = () => {
+    onReset();
+    navigate("/setup");
+  };
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-white/[0.08] bg-[#09090b]/90 px-4 backdrop-blur-md sm:px-5">
       <Link
@@ -195,7 +200,7 @@ export default function Navbar({ onReset }: { onReset: () => void }) {
         <AuthAction />
         <button
           type="button"
-          onClick={onReset}
+          onClick={handleReset}
           className="rounded-lg px-3 py-1.5 text-sm text-neutral-400 transition-colors hover:bg-white/[0.05] hover:text-white focus-ring"
         >
           New Session

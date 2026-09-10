@@ -88,8 +88,8 @@ export default function InterviewCard({ interview, voice }: Props) {
   }, [active, interview.sessionId, interview.status]);
 
   const handleEnd = async () => {
-    await interview.abort();
-    navigate("/setup");
+    const ok = await interview.abort();
+    if (ok) navigate("/setup");
   };
 
   if (!active) {

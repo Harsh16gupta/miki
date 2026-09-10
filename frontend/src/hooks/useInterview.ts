@@ -246,8 +246,8 @@ export function useInterview() {
     msgSeq = 1;
   }, []);
 
-  const abort = useCallback(async () => {
-    if (sessionId == null || busyRef.current) return;
+  const abort = useCallback(async (): Promise<boolean> => {
+    if (sessionId == null || busyRef.current) return false;
     busyRef.current = true;
     setError(null);
     try {
@@ -258,11 +258,12 @@ export function useInterview() {
           ? `End session failed: ${e.detail}`
           : "End session failed.",
       );
-      return;
+      return false;
     } finally {
       busyRef.current = false;
     }
     reset();
+    return true;
   }, [sessionId, reset]);
 
   const pushMikiVoice = useCallback((text: string) => {
