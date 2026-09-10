@@ -5,8 +5,9 @@ Run locally with: ``venv/bin/uvicorn main:app --reload``.
 
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.routers.auth import router as auth_router
@@ -35,6 +36,27 @@ app.include_router(profiles_router)
 app.include_router(sessions_router)
 app.include_router(voice_router)
 app.mount("/ui", StaticFiles(directory=str(STATIC_DIR), html=True), name="ui")
+
+
+@app.middleware("http")
+async def spa_fallback(request: Request, call_next):
+    """Serve the SPA for extensionless /ui/* deep links (BrowserRouter).
+
+    StaticFiles(html=True) only falls back to index.html at the mount root,
+    so /ui/history etc. 404 without this. Real files (with an extension)
+    keep their 404 so missing assets never masquerade as the app shell.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    if (
+        response.status_code == 404
+        and path.startswith("/ui")
+        and "." not in path.rsplit("/", 1)[-1]
+    ):
+        index = STATIC_DIR / "index.html"
+        if index.exists():
+            return FileResponse(str(index), media_type="text/html")
+    return response
 
 
 @app.get("/")
