@@ -3,6 +3,7 @@ import { InterviewProvider } from "./app/InterviewProvider";
 import { useInterviewCtx } from "./app/useInterviewCtx";
 import AmbientBackground from "./components/background/AmbientBackground";
 import Navbar from "./components/layout/Navbar";
+import Footer from "./components/layout/Footer";
 import { Toast } from "./components/common/Primitives";
 import LandingPage from "./pages/LandingPage";
 import SetupPage from "./pages/SetupPage";
@@ -29,9 +30,7 @@ function Shell() {
           <Route path="/history" element={<HistoryPage />} />
           <Route path="*" element={<LandingPage />} />
         </Routes>
-        <footer className="pb-4 pt-2 text-center text-[11px] text-zinc-500">
-          Miki · evidence-grounded interview trainer
-        </footer>
+        <Footer />
       </div>
       {interview.error && (
         <Toast message={interview.error} onDismiss={interview.dismissError} />
