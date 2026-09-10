@@ -1,8 +1,7 @@
 import { Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { InterviewApi } from "../../hooks/useInterview";
-import GlassCard from "../layout/GlassCard";
-import { PillBadge, Spinner } from "../common/Primitives";
+import { Badge, Card, Spinner } from "../common/Primitives";
 import Dropzone from "./Dropzone";
 
 function CheckItem({ done, label }: { done: boolean; label: string }) {
@@ -35,17 +34,17 @@ export default function SetupCard({ interview }: { interview: InterviewApi }) {
   };
 
   return (
-    <GlassCard className="px-6 py-6 sm:px-8" >
+    <Card className="px-6 py-6 sm:px-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-medium tracking-tight text-white sm:text-xl">
           <span className="mr-2 font-mono text-xs text-amber-300">01</span> Profiles
         </h2>
         <div className="flex gap-1.5">
           {profiles.candId != null && (
-            <PillBadge tone="gold">{profiles.candClaims} claims</PillBadge>
+            <Badge tone="amber">{profiles.candClaims} claims</Badge>
           )}
           {profiles.roleId != null && (
-            <PillBadge tone="gold">{profiles.roleSkills} req. skills</PillBadge>
+            <Badge tone="amber">{profiles.roleSkills} req. skills</Badge>
           )}
         </div>
       </div>
@@ -112,6 +111,6 @@ export default function SetupCard({ interview }: { interview: InterviewApi }) {
           </p>
         )}
       </div>
-    </GlassCard>
+    </Card>
   );
 }

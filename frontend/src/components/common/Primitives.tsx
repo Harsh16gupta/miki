@@ -92,25 +92,6 @@ export function Badge({
   );
 }
 
-/** @deprecated Use {@link Badge} with tone="amber"|"cyan"|"default" instead. */
-export function PillBadge({
-  children,
-  tone = "ghost",
-  className,
-}: {
-  children: ReactNode;
-  tone?: "ghost" | "gold" | "cyan";
-  className?: string;
-}) {
-  const mapped: BadgeTone =
-    tone === "gold" ? "amber" : tone === "cyan" ? "cyan" : "default";
-  return (
-    <Badge tone={mapped} className={className}>
-      {children}
-    </Badge>
-  );
-}
-
 /* ---- Input (Surface 2 per DESIGN.md §2) ---- */
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;

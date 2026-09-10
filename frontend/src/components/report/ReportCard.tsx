@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { InterviewApi } from "../../hooks/useInterview";
 import type { SessionDetail } from "../../types/api";
 import { buildReportMarkdown } from "../../lib/reportMarkdown";
-import GlassCard from "../layout/GlassCard";
-import { Button, PillBadge, Spinner } from "../common/Primitives";
+import { Button, Badge, Card, Spinner } from "../common/Primitives";
 import ScoreBar, { EvidenceDrawer } from "./ScoreBar";
 
 function BulletList({ title, items }: { title: string; items: string[] }) {
@@ -58,9 +57,9 @@ export default function ReportCard({
 
   if (status === "scoring") {
     return (
-      <GlassCard className="px-6 py-6 sm:px-8">
+      <Card className="px-6 py-6 sm:px-8">
         <Spinner label="Scoring your session…" />
-      </GlassCard>
+      </Card>
     );
   }
 
@@ -99,14 +98,14 @@ export default function ReportCard({
   };
 
   return (
-    <GlassCard className="px-6 py-6 sm:px-8">
+    <Card className="px-6 py-6 sm:px-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-medium tracking-tight text-white sm:text-xl">
           <span className="mr-2 font-mono text-xs text-amber-300">03</span> Report
         </h2>
         <div className="flex flex-wrap gap-1.5">
-          <PillBadge tone="gold">rubric {report.rubric_version}</PillBadge>
-          <PillBadge>{report.claims_examined} claims examined</PillBadge>
+          <Badge tone="amber">rubric {report.rubric_version}</Badge>
+          <Badge>{report.claims_examined} claims examined</Badge>
         </div>
       </div>
 
@@ -222,6 +221,6 @@ export default function ReportCard({
           Print / PDF
         </Button>
       </div>
-    </GlassCard>
+    </Card>
   );
 }
