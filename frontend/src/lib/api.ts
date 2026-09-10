@@ -48,3 +48,19 @@ export function apiUpload<T>(path: string, file: File): Promise<T> {
   form.append("file", file);
   return apiFetch<T>(path, { method: "POST", body: form });
 }
+
+/** JWT written by AuthContext on login (Wave 4); null in guest mode. */
+const TOKEN_KEY = "miki_token";
+
+export function getStoredToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function authHeaders(): Record<string, string> {
+  const t = getStoredToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}

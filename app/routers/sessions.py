@@ -69,6 +69,9 @@ class SessionDetail(BaseModel):
     claims: int
     policy_version: str
     engine_version: str
+    started_at: datetime
+    ended_at: datetime | None
+    duration_s: int | None
 
 
 class HistoryDimension(BaseModel):
@@ -242,6 +245,9 @@ def session_detail(
     """Inspect a session: derived state, status, turn/claim counts."""
     session = _get_session(db, session_id, user)
     machine = load_machine(db, session.id, policy)
+    duration = None
+    if session.ended_at is not None:
+        duration = int((session.ended_at - session.started_at).total_seconds())
     return SessionDetail(
         session_id=session.id,
         state=machine.current_state.value,
@@ -250,6 +256,9 @@ def session_detail(
         claims=len(session.claims),
         policy_version=session.policy_version,
         engine_version=session.engine_version,
+        started_at=session.started_at,
+        ended_at=session.ended_at,
+        duration_s=duration,
     )
 
 

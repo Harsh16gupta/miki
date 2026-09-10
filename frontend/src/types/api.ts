@@ -44,6 +44,9 @@ export interface SessionDetail {
   claims: number;
   policy_version: string;
   engine_version: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_s: number | null;
 }
 
 export interface RefPreview {

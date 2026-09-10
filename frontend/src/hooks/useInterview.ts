@@ -1,11 +1,12 @@
 import { useCallback, useRef, useState } from "react";
-import { apiPostJson, apiUpload, ApiError } from "../lib/api";
+import { apiPostJson, apiUpload, ApiError, apiFetch } from "../lib/api";
 import type {
   AnswerResponse,
   CandidateProfileResponse,
   ChatMessage,
   EvaluationReport,
   RoleProfileResponse,
+  SessionDetail,
   StartResponse,
 } from "../types/api";
 
@@ -28,6 +29,9 @@ export interface ProfileState {
   roleSkills: number;
   candName: string;
   roleName: string;
+  candClaimsList: string[];
+  candSkills: string[];
+  roleSkillsList: string[];
 }
 
 const MAX_UPLOAD_MB = 10;
@@ -53,8 +57,13 @@ export function useInterview() {
     roleSkills: 0,
     candName: "",
     roleName: "",
+    candClaimsList: [],
+    candSkills: [],
+    roleSkillsList: [],
   });
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [interviewState, setInterviewState] = useState<string>("");
   const [policyVersion, setPolicyVersion] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -85,6 +94,8 @@ export function useInterview() {
             candId: body.id,
             candClaims: body.extracted_json.claims?.length ?? 0,
             candName: file.name,
+            candClaimsList: body.extracted_json.claims ?? [],
+            candSkills: body.extracted_json.skills ?? [],
           }));
         } else {
           const body = await apiUpload<RoleProfileResponse>(
@@ -96,6 +107,7 @@ export function useInterview() {
             roleId: body.id,
             roleSkills: body.extracted_json.required_skills?.length ?? 0,
             roleName: file.name,
+            roleSkillsList: body.extracted_json.required_skills ?? [],
           }));
         }
         setStatus("ready");
@@ -127,6 +139,8 @@ export function useInterview() {
         mode: "normal",
       });
       setSessionId(body.session_id);
+      setStartedAt(Date.now());
+      setDetail(null);
       setInterviewState(body.state);
       setPolicyVersion(body.policy_version);
       setMessages([
@@ -149,7 +163,7 @@ export function useInterview() {
   const loadReport = useCallback(async (sid: number) => {
     setStatus("scoring");
     try {
-      const rep = await apiFetchReport(sid);
+      const rep = await apiFetch<EvaluationReport>(`/session/${sid}/report`);
       setReport(rep);
       setStage("report");
       setStatus("done");
@@ -207,6 +221,50 @@ export function useInterview() {
     [sessionId, status, loadReport],
   );
 
+  const refreshDetail = useCallback(async () => {
+    if (sessionId == null) return;
+    try {
+      const d = await apiFetch<SessionDetail>(`/session/${sessionId}`);
+      setDetail(d);
+      setInterviewState(d.state);
+    } catch {
+      // telemetry is best-effort; errors surface via answer/report flows
+    }
+  }, [sessionId]);
+
+  const reset = useCallback(() => {
+    setStage("setup");
+    setStatus("idle");
+    setSessionId(null);
+    setStartedAt(null);
+    setDetail(null);
+    setMessages([]);
+    setReport(null);
+    setClaimsFound(0);
+    setInterviewState("");
+    setError(null);
+    msgSeq = 1;
+  }, []);
+
+  const abort = useCallback(async () => {
+    if (sessionId == null || busyRef.current) return;
+    busyRef.current = true;
+    setError(null);
+    try {
+      await apiPostJson(`/session/${sessionId}/abort`, {});
+    } catch (e) {
+      setError(
+        e instanceof ApiError
+          ? `End session failed: ${e.detail}`
+          : "End session failed.",
+      );
+      return;
+    } finally {
+      busyRef.current = false;
+    }
+    reset();
+  }, [sessionId, reset]);
+
   const pushMikiVoice = useCallback((text: string) => {
     setMessages((m) => [...m, { id: msgSeq++, who: "miki", text }]);
   }, []);
@@ -218,23 +276,13 @@ export function useInterview() {
     ]);
   }, []);
 
-  const reset = useCallback(() => {
-    setStage("setup");
-    setStatus("idle");
-    setSessionId(null);
-    setMessages([]);
-    setReport(null);
-    setClaimsFound(0);
-    setInterviewState("");
-    setError(null);
-    msgSeq = 1;
-  }, []);
-
   return {
     stage,
     status,
     profiles,
     sessionId,
+    startedAt,
+    detail,
     interviewState,
     policyVersion,
     messages,
@@ -246,18 +294,14 @@ export function useInterview() {
     uploadProfile,
     start,
     answer,
+    abort,
+    refreshDetail,
     loadReport,
     pushMikiVoice,
     pushCandidateVoice,
     setInterviewState,
     reset,
   };
-}
-
-import { apiFetch } from "../lib/api";
-
-async function apiFetchReport(sid: number): Promise<EvaluationReport> {
-  return apiFetch<EvaluationReport>(`/session/${sid}/report`);
 }
 
 export type InterviewApi = ReturnType<typeof useInterview>;

@@ -1,4 +1,5 @@
 import type { VoiceServerFrame } from "../types/api";
+import { getStoredToken } from "./api";
 import { wsUrl } from "./config";
 
 export type VoiceEvent =
@@ -67,7 +68,12 @@ export function connectVoiceSocket(
   onClose?: () => void,
 ): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl(`/session/${sessionId}/voice`));
+    // Browsers can't send Authorization headers over WebSocket;
+    // the backend accepts the owner JWT as ?token= (guest sessions omit it).
+    const token = getStoredToken();
+    const path =
+      `/session/${sessionId}/voice` + (token ? `?token=${token}` : "");
+    const ws = new WebSocket(wsUrl(path));
     const fail = (e: Event) => {
       ws.removeEventListener("open", ok);
       reject(e instanceof Error ? e : new Error("Voice socket failed to open"));
