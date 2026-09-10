@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { apiUrl } from "../../lib/config";
+import { useAuth } from "../../app/useAuth";
 
 const stages = [
   { to: "/setup", label: "Setup" },
@@ -42,6 +43,103 @@ function HealthPill() {
       />
       {ready == null ? "checking" : ready ? "live" : "offline"}
     </span>
+  );
+}
+
+/** Sign In link for guests, avatar menu for signed-in users. */
+function AuthAction() {
+  const { user, status } = useAuth();
+  if (status === "loading") return null;
+  if (!user) {
+    return (
+      <Link
+        to="/login"
+        className="hidden rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/[0.08] hover:text-white focus-ring sm:inline"
+      >
+        Sign In
+      </Link>
+    );
+  }
+  return <UserMenu />;
+}
+
+/** T36: avatar menu with profile details, history link, logout. */
+function UserMenu() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onPointer = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [open ]);
+
+  if (!user) return null;
+  const initial = (user.full_name || user.email || "?").trim().charAt(0).toUpperCase();
+
+  const handleLogout = () => {
+    logout();
+    setOpen(false);
+    navigate("/", { replace: true });
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        aria-label="Account menu"
+        className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm font-bold text-zinc-950 transition-colors hover:bg-neutral-200 focus-ring"
+      >
+        {initial}
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-white/[0.08] bg-[#18181b] p-2 shadow-xl"
+        >
+          <div className="px-3 py-2">
+            <p className="truncate text-sm font-medium text-zinc-50">
+              {user.full_name}
+            </p>
+            <p className="truncate font-mono text-xs text-zinc-500">{user.email}</p>
+          </div>
+          <div className="my-1 border-t border-white/[0.08]" />
+          <Link
+            to="/history"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="block rounded-lg px-3 py-1.5 text-sm text-neutral-300 transition-colors hover:bg-white/[0.05] hover:text-white focus-ring"
+          >
+            Past sessions
+          </Link>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={handleLogout}
+            className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-red-400 transition-colors hover:bg-red-500/[0.08] focus-ring"
+          >
+            Log out
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -94,12 +192,7 @@ export default function Navbar({ onReset }: { onReset: () => void }) {
 
       <div className="flex shrink-0 items-center gap-2">
         <HealthPill />
-        <Link
-          to="/login"
-          className="hidden rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-neutral-200 transition-colors hover:bg-white/[0.08] hover:text-white focus-ring sm:inline"
-        >
-          Sign In
-        </Link>
+        <AuthAction />
         <button
           type="button"
           onClick={onReset}
