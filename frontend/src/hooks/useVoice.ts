@@ -5,6 +5,11 @@ import {
   speakBrowserFallback,
   type VoiceEvent,
 } from "../lib/voiceSocket";
+import {
+  attachElementAnalyser,
+  attachMicAnalyser,
+  type AnalyserHandle,
+} from "../lib/audioAnalyser";
 import type { InterviewApi } from "./useInterview";
 
 /**
@@ -14,11 +19,13 @@ import type { InterviewApi } from "./useInterview";
  */
 export function useVoice(interview: InterviewApi) {
   const [recording, setRecording] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState<string>("Voice idle");
   const wsRef = useRef<WebSocket | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const analyserRef = useRef<AnalyserHandle | null>(null);
   const lastQuestionRef = useRef("");
   const sessionRef = useRef<number | null>(null);
 
@@ -32,7 +39,17 @@ export function useVoice(interview: InterviewApi) {
     if (last) lastQuestionRef.current = last.text;
   }, [interview.messages]);
 
+  const detachAnalyser = useCallback(() => {
+    analyserRef.current?.dispose();
+    analyserRef.current = null;
+  }, []);
+
+  const getAnalyser = useCallback((): AnalyserNode | null => {
+    return analyserRef.current?.analyser ?? null;
+  }, []);
+
   const cleanup = useCallback((closeSocket: boolean) => {
+    detachAnalyser();
     const rec = recorderRef.current;
     if (rec && rec.state !== "inactive") {
       try {
@@ -53,21 +70,39 @@ export function useVoice(interview: InterviewApi) {
       wsRef.current = null;
     }
     setRecording(false);
-  }, []);
+  }, [detachAnalyser]);
 
   useEffect(() => () => cleanup(true), [cleanup]);
 
   const playAudioB64 = useCallback((dataB64: string, fallbackText: string) => {
     try {
+      detachAnalyser();
+      setSpeaking(false);
       audioRef.current?.pause();
       const audio = new Audio(`data:audio/mp3;base64,${dataB64}`);
       audioRef.current = audio;
-      audio.onended = () => setVoiceStatus("Ready — click Speak to answer");
-      audio.play().catch(() => speakBrowserFallback(fallbackText));
+      const handle = attachElementAnalyser(audio);
+      if (handle) {
+        analyserRef.current = handle;
+        setSpeaking(true);
+      }
+      const stopSpeaking = () => {
+        setSpeaking(false);
+        if (analyserRef.current === handle) detachAnalyser();
+      };
+      audio.onended = () => {
+        stopSpeaking();
+        setVoiceStatus("Ready — click Speak to answer");
+      };
+      audio.onerror = stopSpeaking;
+      audio.play().catch(() => {
+        stopSpeaking();
+        speakBrowserFallback(fallbackText);
+      });
     } catch {
       speakBrowserFallback(fallbackText);
     }
-  }, []);
+  }, [detachAnalyser]);
 
   const handleEvent = useCallback(
     (ev: VoiceEvent) => {
@@ -152,6 +187,9 @@ export function useVoice(interview: InterviewApi) {
       return;
     }
     streamRef.current = stream;
+    detachAnalyser();
+    const micHandle = attachMicAnalyser(stream);
+    if (micHandle) analyserRef.current = micHandle;
     let recorder: MediaRecorder;
     try {
       const mime = pickAudioMimeType();
@@ -160,6 +198,7 @@ export function useVoice(interview: InterviewApi) {
         : new MediaRecorder(stream);
     } catch {
       interview.toast("This browser cannot record audio");
+      detachAnalyser();
       stream.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
       return;
@@ -177,7 +216,7 @@ export function useVoice(interview: InterviewApi) {
     recorder.start(250);
     setRecording(true);
     setVoiceStatus("Recording… speak, then click Stop (or go silent)");
-  }, [ensureSocket, interview, recording]);
+  }, [detachAnalyser, ensureSocket, interview, recording]);
 
   const stop = useCallback(
     (sendEnd = true) => {
@@ -202,5 +241,5 @@ export function useVoice(interview: InterviewApi) {
     else void start();
   }, [recording, start, stop]);
 
-  return { recording, voiceStatus, toggle, stopVoice: stop };
+  return { recording, speaking, voiceStatus, toggle, stopVoice: stop, getAnalyser };
 }

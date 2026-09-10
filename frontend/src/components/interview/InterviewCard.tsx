@@ -169,6 +169,8 @@ export default function InterviewCard({ interview, voice }: Props) {
           <Composer
             busy={busy}
             recording={voice.recording}
+            speaking={voice.speaking}
+            getAnalyser={voice.getAnalyser}
             voiceStatus={voice.voiceStatus}
             canVoice={interview.sessionId != null}
             onSend={(t) => void interview.answer(t)}

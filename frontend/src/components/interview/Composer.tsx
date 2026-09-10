@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Mic, Send, Square } from "lucide-react";
 import { cn } from "../../lib/cn";
+import Waveform from "./Waveform";
 
 interface Props {
   busy: boolean;
   recording: boolean;
+  speaking: boolean;
+  getAnalyser: () => AnalyserNode | null;
   voiceStatus: string;
   canVoice: boolean;
   onSend: (text: string) => void;
@@ -14,6 +17,8 @@ interface Props {
 export default function Composer({
   busy,
   recording,
+  speaking,
+  getAnalyser,
   voiceStatus,
   canVoice,
   onSend,
@@ -28,8 +33,24 @@ export default function Composer({
     onSend(t);
   };
 
+  const showWave = recording || speaking;
+
   return (
     <div>
+      {showWave && (
+        <div className="mb-2">
+          <Waveform
+            getAnalyser={getAnalyser}
+            active={recording || speaking}
+            tone={recording ? "cyan" : "emerald"}
+            label={
+              recording
+                ? "Microphone input level"
+                : "Miki voice playback level"
+            }
+          />
+        </div>
+      )}
       <div className="flex gap-2">
         <textarea
           value={draft}
