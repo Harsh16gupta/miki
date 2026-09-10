@@ -123,11 +123,11 @@ export function useInterview() {
     [],
   );
 
-  const start = useCallback(async () => {
-    if (busyRef.current) return;
+  const start = useCallback(async (): Promise<boolean> => {
+    if (busyRef.current) return false;
     if (!profiles.candId || !profiles.roleId) {
       setError("Upload both resume and job description first");
-      return;
+      return false;
     }
     busyRef.current = true;
     setStatus("starting");
@@ -143,11 +143,10 @@ export function useInterview() {
       setDetail(null);
       setInterviewState(body.state);
       setPolicyVersion(body.policy_version);
-      setMessages([
-        { id: msgSeq++, who: "miki", text: body.question },
-      ]);
+      setMessages([{ id: msgSeq++, who: "miki", text: body.question }]);
       setStage("interview");
       setStatus("live");
+      return true;
     } catch (e) {
       setStatus("error");
       setError(
@@ -155,6 +154,7 @@ export function useInterview() {
           ? `Could not start: ${e.detail}`
           : "Could not start the interview.",
       );
+      return false;
     } finally {
       busyRef.current = false;
     }
