@@ -169,6 +169,7 @@ def start_session(
     candidate_profile_id: int,
     role_profile_id: int,
     policy: InterviewPolicy,
+    user_id: int | None = None,
 ) -> tuple[Session, Turn]:
     """Create the session row and generate the opening question."""
     session = Session(
@@ -177,6 +178,7 @@ def start_session(
         mode=policy.mode,
         policy_version=policy.version,
         engine_version=ENGINE_VERSION,
+        user_id=user_id,
     )
     db.add(session)
     db.commit()

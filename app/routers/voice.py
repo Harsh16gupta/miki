@@ -24,8 +24,9 @@ import time
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session as DbSession
 
+from app.auth.security import decode_access_token
 from app.database import SessionLocal
-from app.models import Session
+from app.models import Session, User
 from app.models.enums import SessionStatus
 from app.policy import get_normal_policy
 from app.voice import decide_turn_end, get_stt, get_tts, process_voice_turn
@@ -38,6 +39,21 @@ router = APIRouter(tags=["voice"])
 
 async def _send_json(ws: WebSocket, payload: dict) -> None:
     await ws.send_text(json.dumps(payload))
+
+
+def _user_from_ws_token(db: DbSession, token: str | None) -> User | None:
+    """Decode an optional ``?token=`` query JWT; None when absent/invalid."""
+    if not token:
+        return None
+    try:
+        payload = decode_access_token(token)
+        user_id = int(payload.get("sub"))
+    except Exception:
+        return None
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None or not user.is_active:
+        return None
+    return user
 
 
 async def _finalize(
@@ -78,8 +94,15 @@ async def _finalize(
 
 
 @router.websocket("/session/{session_id}/voice")
-async def voice_session(ws: WebSocket, session_id: int) -> None:
-    """Stream audio in, stream Miki's spoken reply out. Engine untouched."""
+async def voice_session(
+    ws: WebSocket, session_id: int, token: str | None = None
+) -> None:
+    """Stream audio in, stream Miki's spoken reply out. Engine untouched.
+
+    Browsers can't send ``Authorization`` headers over WebSocket, so an
+    optional ``?token=<jwt>`` query param carries the owner credential.
+    Owned sessions reject mismatched tokens; guest sessions stay open.
+    """
     await ws.accept()
     db = SessionLocal()
     try:
@@ -88,6 +111,12 @@ async def voice_session(ws: WebSocket, session_id: int) -> None:
             await _send_json(ws, {"type": "error", "detail": "No such session"})
             await ws.close()
             return
+        if session.user_id is not None:
+            user = _user_from_ws_token(db, token)
+            if user is None or user.id != session.user_id:
+                await _send_json(ws, {"type": "error", "detail": "Not your session"})
+                await ws.close()
+                return
         policy = get_normal_policy()
         threshold = float(policy.silence_threshold_seconds)
         await _send_json(

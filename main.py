@@ -6,8 +6,10 @@ Run locally with: ``venv/bin/uvicorn main:app --reload``.
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.routers.auth import router as auth_router
 from app.routers.profiles import router as profiles_router
 from app.routers.sessions import router as sessions_router
 from app.routers.voice import router as voice_router
@@ -20,6 +22,15 @@ LEGACY_STATIC = ROOT / "app" / "static"
 STATIC_DIR = FRONTEND_DIST if (FRONTEND_DIST / "index.html").exists() else LEGACY_STATIC
 
 app = FastAPI()
+# Split-domain prod (Vite :5173 -> API :8000). Dev also works via Vite proxy.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(auth_router)
 app.include_router(profiles_router)
 app.include_router(sessions_router)
 app.include_router(voice_router)
@@ -35,12 +46,17 @@ def root():
         "health": "/health",
         "docs": "/docs",
         "endpoints": [
+            "POST /auth/register",
+            "POST /auth/login",
+            "GET /auth/me",
             "POST /candidate-profile",
             "POST /candidate-profile/upload",
             "POST /role-profile",
             "POST /role-profile/upload",
             "POST /session/start",
             "POST /session/{id}/answer",
+            "POST /session/{id}/abort",
+            "GET /sessions/history",
             "GET /session/{id}",
             "GET /session/{id}/report",
             "WS /session/{id}/voice",

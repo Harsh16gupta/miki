@@ -13,6 +13,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/health': API_TARGET,
+      '/auth': API_TARGET,
       '/candidate-profile': API_TARGET,
       '/role-profile': API_TARGET,
       '/session': {
