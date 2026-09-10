@@ -1,5 +1,7 @@
 import { Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./app/AuthProvider";
 import { InterviewProvider } from "./app/InterviewProvider";
+import { RequireAuth } from "./app/RequireAuth";
 import { useInterviewCtx } from "./app/useInterviewCtx";
 import AmbientBackground from "./components/background/AmbientBackground";
 import Navbar from "./components/layout/Navbar";
@@ -27,7 +29,14 @@ function Shell() {
           <Route path="/report" element={<ReportPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/history" element={<HistoryPage />} />
+          <Route
+            path="/history"
+            element={
+              <RequireAuth>
+                <HistoryPage />
+              </RequireAuth>
+            }
+          />
           <Route path="*" element={<LandingPage />} />
         </Routes>
         <Footer />
@@ -41,8 +50,10 @@ function Shell() {
 
 export default function App() {
   return (
-    <InterviewProvider>
-      <Shell />
-    </InterviewProvider>
+    <AuthProvider>
+      <InterviewProvider>
+        <Shell />
+      </InterviewProvider>
+    </AuthProvider>
   );
 }

@@ -30,7 +30,10 @@ export async function apiFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
-  const res = await fetch(apiUrl(path), init);
+  // Bearer injection: signed-in requests carry the JWT automatically;
+  // guest requests (no token) omit the header entirely.
+  const headers = { ...authHeaders(), ...init?.headers };
+  const res = await fetch(apiUrl(path), { ...init, headers });
   if (!res.ok) throw new ApiError(res.status, await parseError(res));
   return (await res.json()) as T;
 }

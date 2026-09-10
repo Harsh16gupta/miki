@@ -1,5 +1,44 @@
 /** Typed mirrors of the FastAPI schemas (routers/profiles.py, sessions.py). */
 
+/** Auth schemas (routers/auth.py). */
+export interface AuthUser {
+  id: number;
+  email: string;
+  full_name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface RegisterResponse extends AuthUser {
+  access_token: string;
+  token_type: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface HistoryDimension {
+  dimension: string;
+  score: number;
+}
+
+export interface HistoryEntry {
+  session_id: number;
+  started_at: string;
+  ended_at: string | null;
+  duration_s: number | null;
+  status: string;
+  mode: string;
+  overall_score: number | null;
+  dimensions: HistoryDimension[];
+}
+
+export interface HistoryResponse {
+  sessions: HistoryEntry[];
+}
+
 export interface CandidateExtracted {
   skills: string[];
   projects: { name: string; description: string }[];
