@@ -3,8 +3,15 @@
 # Edit model ids here to change which model handles each task — no code change needed.
 # Cheap tasks (extraction, transition proposals) default to a low-cost model;
 # user-facing quality-critical tasks (questions, evaluation) default to a stronger model.
+# DEV NOTE (2026-09-07): all tasks on openai/gpt-4o-mini because
+# deepseek/deepseek-chat's shared pool kept timing out (repeated 504s) and
+# claude-sonnet-4.5 returns 402 without topped-up credits. Restore
+# question_generation + evaluation to `anthropic/claude-sonnet-4.5` (and
+# extraction/proposals to deepseek if its pool recovers) before quality
+# tuning. `report` stays cheap by design.
 
-extraction: deepseek/deepseek-chat
-state_transition_proposal: deepseek/deepseek-chat
-question_generation: anthropic/claude-sonnet-4.5
-evaluation: anthropic/claude-sonnet-4.5
+extraction: openai/gpt-4o-mini
+state_transition_proposal: openai/gpt-4o-mini
+question_generation: openai/gpt-4o-mini
+evaluation: openai/gpt-4o-mini
+report: openai/gpt-4o-mini

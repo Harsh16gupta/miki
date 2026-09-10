@@ -16,6 +16,7 @@ from app.models.role_profile import RoleProfile
 from app.models.session import Session
 from app.models.state_transition import StateTransition
 from app.models.turn import Turn
+from app.models.user import User
 
 __all__ = [
     "CandidateProfile",
@@ -30,4 +31,5 @@ __all__ = [
     "Speaker",
     "StateTransition",
     "Turn",
+    "User",
 ]

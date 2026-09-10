@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.role_profile import RoleProfile
     from app.models.state_transition import StateTransition
     from app.models.turn import Turn
+    from app.models.user import User
 
 
 class Session(Base):
@@ -64,6 +65,11 @@ class Session(Base):
     policy_version: Mapped[str] = mapped_column(String(50), nullable=False)
     # Version of the interview engine code used.
     engine_version: Mapped[str] = mapped_column(String(50), nullable=False)
+    # Owner account; NULL = guest session (pre-auth or unauthenticated).
+    # SET NULL on user delete so interview history survives account removal.
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
@@ -75,6 +81,8 @@ class Session(Base):
     role_profile: Mapped["RoleProfile"] = relationship(
         "RoleProfile", back_populates="sessions"
     )
+    # Owner account (None for guest sessions).
+    user: Mapped["User | None"] = relationship("User", back_populates="sessions")
     # Conversation turns in order; claims/evidence extracted from them;
     # every state transition (accepted or rejected); final evaluation scores.
     # All cascade: deleting a session deletes its whole subtree.

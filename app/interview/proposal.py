@@ -14,7 +14,7 @@ from typing import Any
 from sqlalchemy.orm import Session as DbSession
 
 from app.interview.machine import StateMachine, TransitionContext
-from app.interview.states import InterviewState
+from app.interview.states import LEGAL_TRANSITIONS, InterviewState
 from app.llm.router import call_llm
 from app.models import Claim, Session, StateTransition, Turn
 from app.policy.loader import InterviewPolicy
@@ -29,8 +29,10 @@ SYSTEM_PROMPT = (
     '"target_claim_id" (integer id of the claim to probe next, or null when '
     "the move is not claim-specific), "
     '"reason" (one sentence tying the choice to the policy and evidence). '
-    "Prefer FOLLOWING_UP when the latest answer is vague; prefer ESCALATING "
-    "after consecutive strong answers; propose CLOSING only when the coverage "
+    "Prefer FOLLOWING_UP when the latest answer is vague. After 2 "
+    "consecutive strong, specific answers in the same category you MUST "
+    "propose ESCALATING (a harder variant: trade-offs, scale, failure "
+    "modes), never another FOLLOWING_UP. Propose CLOSING only when the "
     "numbers show minimums met AND elapsed time passed the target. "
     "Return ONLY valid JSON, no markdown."
 )
@@ -44,6 +46,8 @@ def _snapshot_text(
 ) -> str:
     lines = [
         f"Current state: {current_state.value}",
+        "Legal next states from here (propose exactly one of these): "
+        + ", ".join(sorted(s.value for s in LEGAL_TRANSITIONS[current_state])),
         "Policy: "
         f"target={policy.target_duration_minutes}min "
         f"(+{policy.max_overtime_minutes} overtime), "
@@ -66,6 +70,16 @@ def _snapshot_text(
                 f"- id={claim.id} [{claim.category} conf={claim.confidence:.2f}] "
                 f"{claim.claim_text[:160]}"
             )
+        streak = 0
+        for claim in reversed(recent_claims):
+            if claim.confidence >= 0.7:
+                streak += 1
+            else:
+                break
+        lines.append(
+            f"Strong-answer streak (trailing claims with "
+            f"confidence>=0.70): {streak}. Escalate at 2+."
+        )
     else:
         lines.append("Recent claims: (none yet)")
     return "\n".join(lines)

@@ -26,7 +26,8 @@ SYSTEM_PROMPT = (
     '"category" (short topic bucket, e.g. performance, system_design, '
     "communication, ownership), "
     '"confidence" (0.0-1.0: how strongly the answer substantiates it; '
-    "use <0.4 for vague hand-waving with no specifics), "
+    "use 0.3 or lower for vague hand-waving with no specifics, and mark "
+    "such evidence vague, never supports), "
     '"contradicts_earlier" (true if it conflicts with an earlier turn '
     "or a resume claim, else false), "
     '"evidence": a list of objects with "evidence_text" (the exact quote '
