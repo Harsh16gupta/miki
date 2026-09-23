@@ -1,25 +1,33 @@
 @import "tailwindcss";
 
-/* ---- Miki design tokens (DESIGN.md §2): Cal.com-inspired minimal dark ---- */
+/* ---- Miki design tokens (DESIGN.md §2 / docs/frontend-rebuild/DESIGN-TOKENS.md — law) ----
+   Editorial technical UI: canvas #06090A, surface #0E1223, sage #83DDDA,
+   accent #E4621F, teal #3AA99E. No other hex values may be introduced. */
 @theme {
-  --color-canvas: #09090b;
-  --color-surface-1: #121215;
-  --color-surface-2: #18181b;
-  --color-ink: #fafafa;
-  --color-secondary: #a1a1aa;
-  --color-muted: #71717a;
-  --color-claim: #fbbf24;
-  --color-live: #06b6d4;
+  --color-canvas: #06090a;
+  --color-surface: #0e1223;
+  --color-surface-2: #0e1223;
+  --color-ink: #83ddda;
+  --color-sage: #83ddda;
+  --color-sage-muted: #8fa3a0;
+  --color-muted: #8fa3a0;
+  --color-secondary: #8fa3a0;
+  --color-accent: #e4621f;
+  --color-teal: #3aa99e;
+  --color-claim: #e4621f;
+  --color-live: #3aa99e;
   --color-danger: #f87171;
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, sans-serif;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Newsreader", Georgia, serif;
 }
 
 html,
 body {
-  background: #09090b;
-  color: #fafafa;
-  font-family: var(--font-sans);
+  background: #06090a;
+  color: #83ddda;
+  font-family: var(--font-serif);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -29,18 +37,110 @@ body {
   min-height: 100svh;
 }
 
+/* ---- Blueprint grid backdrop (faint grid over canvas) ---- */
+.blueprint-grid {
+  background-image:
+    linear-gradient(rgba(131, 221, 218, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(131, 221, 218, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ---- Stamp badges: 2px border, rotated, mono uppercase ---- */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid currentColor;
+  transform: rotate(-2deg);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.9rem;
+}
+.stamp-accent {
+  color: #e4621f;
+  border-color: #e4621f;
+}
+.stamp-teal {
+  color: #3aa99e;
+  border-color: #3aa99e;
+}
+
+/* ---- Form panel: 1px light border + hard solid offset shadow (no blur) ---- */
+.panel-hard {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #06090a;
+  box-shadow: 10px 10px 0 #e4621f;
+}
+
+/* ---- Underline inputs: transparent bg, bottom hairline, serif value ---- */
+.input-underline {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 0.4rem 0;
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: #83ddda;
+  transition: border-color 150ms ease-out;
+}
+.input-underline::placeholder {
+  color: #8fa3a0;
+  opacity: 0.75;
+  font-style: italic;
+}
+.input-underline:focus {
+  outline: none;
+  border-bottom-color: #83ddda;
+}
+.input-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #8fa3a0;
+  margin-bottom: 0.25rem;
+}
+.input-required-dot {
+  color: #e4621f;
+}
+
+/* ---- Upload zones (3 states from the design sheet) ---- */
+.upload-zone {
+  border: 1px dashed rgba(131, 221, 218, 0.4);
+  transition:
+    border-color 150ms ease-out,
+    background-color 150ms ease-out;
+}
+.upload-zone-hover {
+  border: 1px dashed #3aa99e;
+  background: rgba(58, 169, 158, 0.06);
+}
+.upload-zone-filled {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+/* ---- Micro-labels: mono uppercase + wide tracking ---- */
+.micro-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
 /* ---- Focus ring (DESIGN.md: every interactive element) ---- */
 .focus-ring {
   outline: none;
 }
 .focus-ring:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline: 2px solid rgba(131, 221, 218, 0.7);
   outline-offset: 2px;
 }
 
 /* ---- Status dot glow (voice / live activity) ---- */
 .live-dot {
-  box-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+  box-shadow: 0 0 8px rgba(58, 169, 158, 0.8);
 }
 
 /* ---- Chat scroll ---- */
@@ -72,19 +172,11 @@ body {
   animation: voice-pulse 1.4s ease-in-out infinite;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .voice-live {
-    animation: none !important;
-  }
-  .msg-in {
-    animation: none !important;
-  }
-}
-
+/* ---- Message entry: fade + 8px rise ---- */
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -92,7 +184,7 @@ body {
   }
 }
 .msg-in {
-  animation: fade-up 0.25s ease-out;
+  animation: fade-up 0.2s ease-out;
 }
 
 /* ---- T7 demo teaser equalizer (decorative simulation, not live audio) ---- */
@@ -111,7 +203,14 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .voice-live,
+  .msg-in,
   .demo-bar {
     animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
   }
 }

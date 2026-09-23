@@ -19,46 +19,41 @@
 
 ## 2. Color System & Semantic Tokens
 
-Miki uses a refined dark palette anchored on zinc/neutral tones with purposeful semantic accents.
+Miki uses the editorial technical palette (see
+`docs/frontend-rebuild/DESIGN-TOKENS.md` — law; reference image
+`reference/01-design-system.png` wins on any conflict). **No other hex
+values may be introduced.**
 
-### A. Neutral Surfaces & Backgrounds
-* **Canvas / Base Background**: `#09090b` (Deep Obsidian / Zinc-950).
-* **Surface 1 (Cards, Panels)**: `#121215` / `rgba(18, 18, 21, 0.75)` with `border border-white/[0.08]`.
-* **Surface 2 (Elevated / Nested containers / Inputs)**: `#18181b` / `rgba(24, 24, 27, 0.6)` with `border border-white/[0.06]`.
-* **Surface Hover**: `rgba(255, 255, 255, 0.04)`.
-* **Dividers & Hairlines**: `rgba(255, 255, 255, 0.08)` or `border-neutral-800`.
+### A. Surfaces & Backgrounds
+* **Canvas / Base Background**: `#06090A`.
+* **Surface (Panels, Cards)**: `#0E1223` with `border rgba(255,255,255,0.08)`.
+* **Dividers & Hairlines**: `rgba(255, 255, 255, 0.08)`.
 
 ### B. Typography & Text Contrast
-* **Text Primary (Headings, active labels, body)**: `#fafafa` (Zinc-50) — high contrast, 100% readable.
-* **Text Secondary (Subtitles, descriptions, hints)**: `#a1a1aa` (Zinc-400) — never drop below `4.5:1` contrast ratio.
-* **Text Muted (Timestamps, metadata, disabled)**: `#71717a` (Zinc-500).
+* **Text Primary (Headlines, body, scores, filled bars)**: sage `#83DDDA`.
+* **Text Secondary (Meta, hints, sublines)**: muted sage `#8FA3A0` — never
+  drop below `4.5:1` contrast ratio on canvas. Placeholders dimmest.
+* **Numbers / Timers / Scores**: mono + `tabular-nums`.
 
 ### C. Semantic & Functional Accents
-* **Primary Action / CTA**: Solid `#fafafa` with `#09090b` text, font-medium/semibold, sharp rounded pill (`rounded-lg` or `rounded-full`).
-* **Evidence & Claims Accent (Gold / Amber)**:
-  - Text / Badges: `#f59e0b` / `#fbbf24` (Amber-400 / 500).
-  - Background: `rgba(245, 158, 11, 0.1)`.
-  - Border: `rgba(245, 158, 11, 0.25)`.
-* **Voice & Live Activity (Cyan / Emerald)**:
-  - Voice active: `#06b6d4` (Cyan-500) or `#10b981` (Emerald-500).
-  - Ambient pulse: Clean 2px ring / subtle glow.
-* **Danger / Error**:
-  - Border: `rgba(239, 68, 68, 0.3)`.
-  - Background: `rgba(239, 68, 68, 0.08)`.
-  - Text: `#f87171` (Red-400).
+* **Accent (ONE italic headline word per viewport max, primary CTA,
+  form-panel offset shadow, required dots, mic button)**: `#E4621F`.
+* **Teal (secondary stamp, checked states, LIVE pill, upload-hover border,
+  strengths chips)**: `#3AA99E`.
+* **Danger / Error only**: `#f87171` (Red-400, unchanged).
 
 ---
 
 ## 3. Typography Rules
 
-* **Font Family**: Inter, Geist, or system sans-serif (`font-sans`).
-* **Headings**:
-  - `h1`: `text-2xl sm:text-3xl font-semibold tracking-tight text-white`
-  - `h2`: `text-lg sm:text-xl font-medium tracking-tight text-white`
-  - `h3`: `text-sm sm:text-base font-medium text-neutral-200`
-* **Body**: `text-sm leading-relaxed text-neutral-300`
-* **Labels / Micro-copy**: `text-xs font-medium uppercase tracking-wider text-neutral-400`
-* **Numbers / Metrics / Citations**: Tabular numerals (`tabular-nums font-mono text-xs`) for scores, timestamps, and claim IDs.
+* **Display serif with true italic** (headlines, body prose, input values,
+  placeholders): `Newsreader:ital,opsz,wght` via Google Fonts `<link>`
+  (fallback Georgia, serif). Italic accent word in `#E4621F` — max one per
+  viewport.
+* **`JetBrains Mono`** (ALL labels, buttons, nav, breadcrumbs, meta,
+  timers, IDs): uppercase + wide tracking (`0.14em+`) for micro-labels.
+* **Numbers / Metrics / Citations**: mono + `tabular-nums`.
+* **Body measure**: < 80 chars per line; serif body gets generous line-height.
 
 ---
 
@@ -97,28 +92,48 @@ Miki uses a refined dark palette anchored on zinc/neutral tones with purposeful 
 ## 5. Component Style Guide
 
 ### Buttons
-* **Primary**: `bg-white text-zinc-950 hover:bg-neutral-200 font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm disabled:opacity-50`
-* **Secondary / Outline**: `border border-white/10 bg-white/[0.03] text-neutral-200 hover:bg-white/[0.08] hover:text-white px-4 py-2 rounded-lg text-sm transition-colors`
-* **Ghost**: `text-neutral-400 hover:text-white hover:bg-white/[0.05] px-3 py-1.5 rounded-lg text-sm transition-colors`
+* **Primary**: solid `#E4621F`, black text, mono uppercase + `→`.
+  One orange button per viewport.
+* **Secondary / Outline**: `1px` sage outline (`#83DDDA`).
+* **Ghost / Danger**: ghost quiet text; danger uses `#f87171` (errors only).
 
-### Cards & Panels
-* **Container**: `rounded-xl border border-white/[0.08] bg-zinc-900/60 backdrop-blur-md p-5 sm:p-6 shadow-xl`
-* **No triple nested cards**: Use subtle separator lines or muted background fills (`bg-black/30`) instead of repeating full card borders.
+### Panels & Surfaces
+* **Panels**: sharp corners (`rounded-none` to `rounded-sm`), `1px` border,
+  near-black fill. `rounded-xl` only on small inner elements.
+* **Form panel**: `1px` light border + hard solid offset shadow
+  `box-shadow: 10px 10px 0 #E4621F` (no blur). Header row: mono title left
+  + form number right (e.g. `SESSION SETUP` / `FORM · SES-001`).
 
-### Badges & Status Pills
-* `inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium`
-* Default: `bg-white/[0.06] text-neutral-300 border border-white/[0.08]`
-* Success / Ready: `bg-emerald-500/10 text-emerald-400 border border-emerald-500/20`
-* Amber / Claims: `bg-amber-500/10 text-amber-300 border border-amber-500/20`
-* Cyan / Live: `bg-cyan-500/10 text-cyan-400 border border-cyan-500/20`
+### Badges / Stamps
+* **Stamp badges**: `2px` border (accent `#E4621F` or teal `#3AA99E`),
+  `rotate-[-2deg]`, mono uppercase (e.g. `EVIDENCE-GROUNDED`,
+  `VOICE-FIRST`, `LIVE`, `SETUP`).
+
+### Inputs & Uploads
+* **Underline inputs**: transparent bg, bottom hairline only, mono
+  uppercase label, serif value, accent required dot.
+* **Upload zones** (3 states): default dashed sage/40 + format hint;
+  hover/dragover teal border + "Release to upload"; filled filename + size
+  + "Uploaded" + × remove.
+* **Checkboxes**: square outline, teal fill + check when on.
+
+### Chrome
+* **Background**: faint blueprint grid over canvas (`.blueprint-grid`) +
+  frame lines with corner `+` registration marks.
+* **Footer strip**: hairline rule, mono microcopy left
+  (`TURN CONVERSATIONS INTO CONFIDENCE`) / right (`BUILT FOR ENGINEERS`).
+* **Icons**: Lucide, 24px, 1.5px stroke.
+* **Motion**: 150–200ms ease-out hovers, message entry fade + 8px rise
+  (`.msg-in`), single recording pulse only (`.voice-live`), full
+  `prefers-reduced-motion` calm.
 
 ---
 
 ## 6. Rules & Guardrails for AI Coding Agents
 
-1. **NEVER use low-contrast text**: Do not use `#a8a29e` on dark translucent backgrounds without checking readability. Ensure all primary text is `#fafafa` or `#f4f4f5`.
+1. **NEVER use low-contrast text**: Ensure all primary text is sage `#83DDDA` and secondary `#8FA3A0` or brighter on canvas. Never below `4.5:1`.
 2. **NEVER stack full-page views vertically**: Respect `interview.stage`. If the user is in `setup`, show the Setup workspace. If in `interview`, show the Interview Arena. If in `report`, show the Evaluation Report.
-3. **DO NOT invent arbitrary CSS utility classes**: Stick to standard Tailwind classes.
+3. **DO NOT invent arbitrary CSS utility classes**: Stick to standard Tailwind classes plus the named utilities in `frontend/src/index.css` (blueprint-grid, stamp, panel-hard, input-underline, upload-zone).
 4. **DO NOT add decorative visual noise**: Avoid drifting neon orbs, heavy radial gradients, or bouncing animations that compete with user attention.
 5. **Always provide responsive layouts**: Use `flex-col sm:flex-row`, `grid-cols-1 md:grid-cols-2`, and ensure mobile accessibility.
 6. **Ensure interactive feedback**: Every clickable element must have hover, active, focus-visible, and disabled states.
