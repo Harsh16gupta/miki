@@ -1,47 +1,124 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { InterviewApi } from "../../hooks/useInterview";
-import type { SessionDetail } from "../../types/api";
+import type { EvaluationReport, SessionDetail } from "../../types/api";
 import { buildReportMarkdown } from "../../lib/reportMarkdown";
-import { Button, Badge, Card, Spinner } from "../common/Primitives";
-import ScoreBar, { EvidenceDrawer } from "./ScoreBar";
+import { Button, Spinner } from "../common/Primitives";
+import Breadcrumb from "../common/Breadcrumb";
+import ScoreBar from "./ScoreBar";
 
-function BulletList({ title, items }: { title: string; items: string[] }) {
+/* Backend scores 1–5; the reference sheet shows /100. Display decision
+   (per SCREEN-SPECS.md): score/5*100, backend values untouched. */
+const to100 = (score5: number): number =>
+  Math.round((Math.max(0, Math.min(5, score5)) / 5) * 100);
+
+function formatStamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.toUpperCase();
+  const date = d
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    })
+    .toUpperCase();
+  const time = d.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return `${date} ${time}`;
+}
+
+function Quadrant({
+  n,
+  title,
+  count,
+  children,
+}: {
+  n: string;
+  title: string;
+  count: number;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-black/30 p-4">
-      <h4 className="mb-2 text-xs font-medium uppercase tracking-wider text-amber-300">
-        {title.toUpperCase()}
-      </h4>
-      {items.length === 0 ? (
-        <p className="text-sm text-zinc-400">Nothing recorded.</p>
-      ) : (
-        <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-300">
-          {items.map((s, i) => (
-            <li key={i}>{s}</li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <article className="rounded-none border border-white/[0.08] bg-[#0E1223] p-4">
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5 font-mono text-xs uppercase tracking-[0.18em] text-[#8FA3A0]">
+        <span>
+          [{n}] <span className="ml-2">{title}</span>
+        </span>
+        <span>({count})</span>
+      </div>
+      {children}
+    </article>
   );
 }
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return iso;
-  }
+function QuadrantList({
+  items,
+  tone,
+  empty,
+}: {
+  items: string[];
+  tone: "teal" | "accent";
+  empty: string;
+}) {
+  if (items.length === 0)
+    return (
+      <p className="mt-3 font-serif text-[15px] italic text-[#8FA3A0]">{empty}</p>
+    );
+  return (
+    <ul className="mt-1 divide-y divide-white/[0.06]">
+      {items.map((s, i) => (
+        <li key={i} className="flex items-start gap-3 py-2.5">
+          <span
+            aria-hidden="true"
+            className={`flex h-6 w-6 shrink-0 items-center justify-center border font-mono text-xs ${
+              tone === "teal"
+                ? "border-[#3AA99E] text-[#3AA99E]"
+                : "border-[#E4621F] text-[#E4621F]"
+            }`}
+          >
+            {i + 1}
+          </span>
+          <span className="font-mono text-xs leading-relaxed text-[#83DDDA]">
+            {s}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
-function formatDuration(totalS: number | null): string {
-  if (totalS == null) return "—";
-  const m = Math.floor(totalS / 60);
-  const s = totalS % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+interface CitedRow {
+  key: string;
+  code: string;
+  text: string;
+  dim: string;
+}
+
+/** Flatten real claim/evidence/turn refs (evidence first) across dimensions. */
+function citedRows(report: EvaluationReport): CitedRow[] {
+  const rows: CitedRow[] = [];
+  for (const d of report.dimensions) {
+    const push = (
+      kind: "EV" | "CL" | "T",
+      refs: { id: number; text: string }[],
+    ) => {
+      for (const r of refs) {
+        rows.push({
+          key: `${kind}-${r.id}-${d.dimension}`,
+          code: `${kind}-${String(r.id).padStart(3, "0")}`,
+          text: r.text,
+          dim: d.dimension,
+        });
+      }
+    };
+    push("EV", d.refs.evidence);
+    push("CL", d.refs.claims);
+    push("T", d.refs.turns);
+  }
+  return rows;
 }
 
 export default function ReportCard({
@@ -57,18 +134,38 @@ export default function ReportCard({
 
   if (status === "scoring") {
     return (
-      <Card className="px-6 py-6 sm:px-8">
+      <div className="rounded-none border border-white/[0.08] bg-[#0E1223] p-6">
         <Spinner label="Scoring your session…" />
-      </Card>
+      </div>
     );
   }
 
-  if (!report) return null;
+  if (!report) {
+    return (
+      <div className="rounded-none border border-white/[0.08] bg-[#0E1223] p-5 sm:p-6">
+        <div className="border border-white/[0.08] bg-black/30 px-4 py-8 text-center font-serif text-[15px] text-[#8FA3A0]">
+          No report yet — finish an interview first.{" "}
+          <Link
+            to="/setup"
+            className="rounded-none font-mono text-xs uppercase tracking-[0.14em] text-[#3AA99E] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring"
+          >
+            Go to setup →
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
-  const overall =
+  const overall5 =
     report.dimensions.length > 0
-      ? report.dimensions.reduce((a, d) => a + d.score, 0) / report.dimensions.length
+      ? report.dimensions.reduce((a, d) => a + d.score, 0) /
+        report.dimensions.length
       : 0;
+  const overall100 = to100(overall5);
+  const sorted = [...report.dimensions].sort((a, b) => b.score - a.score);
+  const top = sorted[0];
+  const bottom = sorted[sorted.length - 1];
+  const sessionTag = `SESSION-${String(report.session_id).padStart(3, "0")}`;
 
   const copyMarkdown = async () => {
     try {
@@ -97,130 +194,182 @@ export default function ReportCard({
     navigate("/setup");
   };
 
+  const cites = citedRows(report);
+  const shown = cites.slice(0, 12);
+
   return (
-    <Card className="px-6 py-6 sm:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-medium tracking-tight text-white sm:text-xl">
-          <span className="mr-2 font-mono text-xs text-amber-300">03</span> Report
-        </h2>
-        <div className="flex flex-wrap gap-1.5">
-          <Badge tone="amber">rubric {report.rubric_version}</Badge>
-          <Badge>{report.claims_examined} claims examined</Badge>
-        </div>
-      </div>
-
-      {/* T22: executive summary header */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-white/[0.08] bg-black/30 p-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
-            Overall readiness
-          </p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-white">
-            {overall.toFixed(1)}
-            <span className="text-sm font-normal text-zinc-500"> / 5</span>
-          </p>
-        </div>
-        <div className="rounded-xl border border-white/[0.08] bg-black/30 p-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
-            Session date
-          </p>
-          <p className="mt-1 text-sm text-zinc-200">
-            {meta ? formatDate(meta.started_at) : "—"}
-          </p>
-        </div>
-        <div className="rounded-xl border border-white/[0.08] bg-black/30 p-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
-            Duration
-          </p>
-          <p className="mt-1 font-mono text-sm tabular-nums text-zinc-200">
-            {meta ? formatDuration(meta.duration_s) : "—"}
-          </p>
-        </div>
-        <div className="rounded-xl border border-white/[0.08] bg-black/30 p-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
-            Rubric
-          </p>
-          <p className="mt-1 font-mono text-sm text-zinc-200">
-            {report.rubric_version}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-4 overflow-hidden rounded-xl border border-white/[0.08]">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-white/[0.08] bg-white/[0.04] text-[11px] tracking-[0.14em] text-zinc-400">
-              <th className="px-4 py-2.5 font-medium">DIMENSION</th>
-              <th className="px-4 py-2.5 font-medium">SCORE</th>
-              <th className="hidden px-4 py-2.5 font-medium sm:table-cell">
-                EVIDENCE
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.dimensions.map((d) => (
-              <tr
-                key={d.dimension}
-                className="border-b border-white/5 last:border-0"
-              >
-                <td className="px-4 py-3 font-medium text-white">
-                  {d.dimension}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="flex items-center gap-2">
-                    <span className="font-mono text-xs tabular-nums text-zinc-50">{d.score.toFixed(1)}</span>
-                    <ScoreBar score={d.score} />
-                  </span>
-                </td>
-                <td className="hidden px-4 py-3 sm:table-cell">
-                  <EvidenceDrawer dim={d} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* evidence for small screens */}
-      <div className="mt-3 space-y-3 sm:hidden">
-        {report.dimensions.map((d) => (
-          <div
-            key={d.dimension}
-            className="rounded-xl border border-white/[0.08] bg-black/30 p-3"
-          >
-            <p className="mb-1.5 text-xs font-medium text-white">
-              {d.dimension}
-            </p>
-            <EvidenceDrawer dim={d} />
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <BulletList title="Strengths" items={report.strengths} />
-        <BulletList title="Weaknesses" items={report.weaknesses} />
-        <BulletList
-          title="Hard to defend"
-          items={report.hard_to_defend_claims}
+    <div className="space-y-6 pt-4">
+      {/* header */}
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <Breadcrumb
+          trail={[{ label: "Evaluation report" }, { label: sessionTag }]}
         />
-        <BulletList title="Study next" items={report.study_topics} />
+        {meta && (
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#8FA3A0]">
+            {formatStamp(meta.started_at)}
+          </p>
+        )}
       </div>
 
-      {/* T26: action bar — client-side export suite */}
-      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/[0.08] pt-4">
-        <Button variant="primary" onClick={practiceAgain}>
-          Practice Again
-        </Button>
-        <Button variant="secondary" onClick={() => void copyMarkdown()}>
-          {copied ? "Copied ✓" : "Copy Markdown Summary"}
-        </Button>
-        <Button variant="secondary" onClick={downloadJson}>
-          Export JSON
-        </Button>
-        <Button variant="ghost" onClick={() => window.print()}>
-          Print / PDF
-        </Button>
+      <div className="grid items-start gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        {/* left: score hero + dimensions + evidence ledger */}
+        <div>
+          <h1 className="font-serif text-5xl font-semibold leading-[1.05] tracking-tight text-[#83DDDA] sm:text-6xl">
+            Overall Score:{" "}
+            <span className="tabular-nums">
+              <span className="text-[#E4621F]">{overall100}</span>/100
+            </span>
+          </h1>
+          {top && bottom && top !== bottom && (
+            <p className="mt-4 max-w-xl font-serif text-lg leading-relaxed text-[#83DDDA]">
+              Strongest in{" "}
+              <em className="italic text-[#E4621F]">
+                {top.dimension.toLowerCase()}
+              </em>{" "}
+              ({to100(top.score)}/100) — tighten{" "}
+              <em className="italic text-[#E4621F]">
+                {bottom.dimension.toLowerCase()}
+              </em>{" "}
+              ({to100(bottom.score)}/100) next.
+            </p>
+          )}
+
+          <div className="mt-6 border-t border-dashed border-white/[0.2]" />
+
+          <div className="mt-4 flex items-center justify-between font-mono text-xs uppercase tracking-[0.18em] text-[#8FA3A0]">
+            <span>Dimension</span>
+            <span>Score</span>
+          </div>
+          <ul className="mt-2 divide-y divide-white/[0.06] border-y border-white/[0.08]">
+            {report.dimensions.map((d) => (
+              <li
+                key={d.dimension}
+                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] items-center gap-4 py-3"
+              >
+                <span className="font-serif text-lg text-[#83DDDA]">
+                  {d.dimension}
+                </span>
+                <ScoreBar score={d.score} />
+                <span className="font-mono text-sm tabular-nums text-[#83DDDA]">
+                  {to100(d.score)} / 100
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-8 flex items-center justify-between font-mono text-xs uppercase tracking-[0.18em] text-[#8FA3A0]">
+            <span>Evidence citations</span>
+            <span>From session</span>
+          </div>
+          {shown.length === 0 ? (
+            <p className="mt-3 font-serif text-[15px] italic text-[#8FA3A0]">
+              No cited passages recorded for this session.
+            </p>
+          ) : (
+            <>
+              <ol className="mt-2 divide-y divide-white/[0.06] border-y border-white/[0.08]">
+                {shown.map((c, i) => (
+                  <li
+                    key={c.key}
+                    className="flex items-baseline gap-3 py-2.5 font-mono text-xs"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center border border-white/[0.2] text-[11px] text-[#83DDDA]"
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span className="shrink-0 text-[#8FA3A0]">{c.code}</span>
+                    <span className="min-w-0 flex-1 truncate text-[#83DDDA]">
+                      {c.text}
+                    </span>
+                    <span className="hidden shrink-0 uppercase tracking-[0.14em] text-[#8FA3A0] sm:inline">
+                      {c.dim}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              {cites.length > shown.length && (
+                <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0]">
+                  +{cites.length - shown.length} more in the JSON export
+                </p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* right: quadrants + export */}
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <Quadrant
+              n="01"
+              title="Strengths"
+              count={report.strengths.length}
+            >
+              <QuadrantList
+                items={report.strengths}
+                tone="teal"
+                empty="Nothing recorded."
+              />
+            </Quadrant>
+            <Quadrant
+              n="02"
+              title="Improvements"
+              count={report.weaknesses.length}
+            >
+              <QuadrantList
+                items={report.weaknesses}
+                tone="accent"
+                empty="Nothing recorded."
+              />
+            </Quadrant>
+            <Quadrant
+              n="03"
+              title="Vulnerable claims"
+              count={report.hard_to_defend_claims.length}
+            >
+              <QuadrantList
+                items={report.hard_to_defend_claims}
+                tone="accent"
+                empty="No shaky claims detected."
+              />
+            </Quadrant>
+            <Quadrant
+              n="04"
+              title="Study topics"
+              count={report.study_topics.length}
+            >
+              <QuadrantList
+                items={report.study_topics}
+                tone="teal"
+                empty="Nothing assigned."
+              />
+            </Quadrant>
+          </div>
+          <Button
+            variant="primary"
+            onClick={downloadJson}
+            className="w-full py-3.5 text-sm"
+          >
+            Export report →
+          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => void copyMarkdown()}>
+              {copied ? "Copied ✓" : "Copy Markdown"}
+            </Button>
+            <Button variant="secondary" onClick={practiceAgain}>
+              Practice Again
+            </Button>
+            <Button variant="ghost" onClick={() => window.print()}>
+              Print / PDF
+            </Button>
+          </div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0]">
+            Rubric {report.rubric_version} · {report.claims_examined} claims
+            examined
+          </p>
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
