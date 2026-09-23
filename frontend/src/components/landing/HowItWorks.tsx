@@ -24,36 +24,36 @@ const steps = [
   },
 ];
 
-/** T9: 3-step visual timeline with route links. */
+/** 3-step checklist rows with square number chips. */
 export default function HowItWorks() {
   return (
     <section
       aria-label="How it works"
-      className="rounded-xl border border-white/[0.08] bg-zinc-900/60 p-5 shadow-xl sm:p-6"
+      className="rounded-none border border-white/[0.08] bg-[#0E1223] p-5 sm:p-6"
     >
-      <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
+      <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#8FA3A0]">
         How it works
       </p>
-      <ol className="mt-4 space-y-4">
+      <ol className="mt-5 space-y-5">
         {steps.map((s) => (
-          <li key={s.n} className="flex gap-3">
+          <li key={s.n} className="flex gap-4">
             <span
               aria-hidden="true"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] font-mono text-xs text-amber-300"
+              className="flex h-7 w-7 shrink-0 items-center justify-center border border-white/[0.2] font-mono text-xs text-[#83DDDA]"
             >
               {s.n}
             </span>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-zinc-50">
+              <p className="font-serif text-lg font-medium text-[#83DDDA]">
                 {s.title}{" "}
                 <Link
                   to={s.to}
-                  className="ml-1 text-xs font-normal text-cyan-300 hover:text-white focus-ring"
+                  className="ml-1 rounded-none font-mono text-[11px] font-normal uppercase tracking-[0.14em] text-[#3AA99E] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring"
                 >
                   {s.cta} →
                 </Link>
               </p>
-              <p className="mt-1 text-sm leading-relaxed text-neutral-300">
+              <p className="mt-1 font-serif text-[15px] leading-relaxed text-[#8FA3A0]">
                 {s.body}
               </p>
             </div>

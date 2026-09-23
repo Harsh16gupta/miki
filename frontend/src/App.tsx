@@ -20,7 +20,7 @@ function Shell() {
   return (
     <div className="relative min-h-svh">
       <AmbientBackground />
-      <div className="relative z-10 mx-auto w-full max-w-4xl space-y-4 px-4 py-6 sm:px-6">
+      <div className="relative z-10 mx-auto w-full max-w-6xl space-y-4 px-4 py-6 sm:px-6">
         <Navbar onReset={interview.reset} />
         <Routes>
           <Route path="/" element={<LandingPage />} />
