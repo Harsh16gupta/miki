@@ -3,17 +3,24 @@ import { readLevels } from "../../lib/audioAnalyser";
 import { cn } from "../../lib/cn";
 
 const BARS = 32;
+/* One accent bar among the sage — matches the composer in image 04. */
+const ACCENT_BAR = 21;
 
-/** T19: live frequency-bar visualizer driven by an AnalyserNode. */
+const TONES = {
+  sage: "131,221,218",
+  teal: "58,169,158",
+} as const;
+
+/** Live frequency-bar visualizer driven by an AnalyserNode. Flat when idle. */
 export default function Waveform({
   getAnalyser,
   active,
-  tone = "cyan",
+  tone = "sage",
   label,
 }: {
   getAnalyser: () => AnalyserNode | null;
   active: boolean;
-  tone?: "cyan" | "emerald";
+  tone?: keyof typeof TONES;
   label: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,16 +49,16 @@ export default function Waveform({
         canvas.height = h;
       }
       ctx.clearRect(0, 0, w, h);
-      const levels = isActive ? readLevels(get(), BARS) : new Array(BARS).fill(0);
+      const levels = isActive ? readLevels(get(), BARS) : new Array(BARS).fill(0.06);
       const gap = w / BARS;
-      const barW = Math.max(1, gap * 0.55);
-      const color = tone === "cyan" ? "34,211,238" : "16,185,129";
+      const barW = Math.max(1, gap * 0.5);
       for (let i = 0; i < BARS; i++) {
         const v = levels[i];
         const barH = Math.max(2 * dpr, v * h * 0.92);
         const x = i * gap + (gap - barW) / 2;
         const y = (h - barH) / 2;
-        ctx.fillStyle = `rgba(${color},${0.25 + v * 0.65})`;
+        const color = i === ACCENT_BAR ? "228,98,31" : TONES[tone];
+        ctx.fillStyle = `rgba(${color},${0.3 + v * 0.6})`;
         if (typeof ctx.roundRect === "function") {
           ctx.beginPath();
           ctx.roundRect(x, y, barW, barH, barW / 2);
@@ -69,12 +76,9 @@ export default function Waveform({
     <div
       role="img"
       aria-label={label}
-      className={cn(
-        "overflow-hidden rounded-xl border border-white/[0.08] bg-black/30",
-        !active && "opacity-60",
-      )}
+      className={cn(!active && "opacity-70")}
     >
-      <canvas ref={canvasRef} className="h-14 w-full" />
+      <canvas ref={canvasRef} className="h-10 w-full" />
     </div>
   );
 }

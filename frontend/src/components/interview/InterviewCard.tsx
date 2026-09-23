@@ -3,7 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import type { InterviewApi } from "../../hooks/useInterview";
 import type { useVoice } from "../../hooks/useVoice";
-import { Badge, Button, Spinner } from "../common/Primitives";
+import { Button, Spinner } from "../common/Primitives";
+import { Stamp } from "../common/Primitives";
+import Breadcrumb from "../common/Breadcrumb";
 import ChatThread from "./ChatThread";
 import Composer from "./Composer";
 
@@ -14,12 +16,13 @@ interface Props {
 
 function formatElapsed(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
-  const m = Math.floor(total / 60);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function SessionTimer({ startedAt }: { startedAt: number }) {
+function SessionTimer({ startedAt, large = false }: { startedAt: number; large?: boolean }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
@@ -27,7 +30,10 @@ function SessionTimer({ startedAt }: { startedAt: number }) {
   }, []);
   return (
     <span
-      className="font-mono text-xs tabular-nums text-zinc-400"
+      className={cn(
+        "font-mono tabular-nums text-[#83DDDA]",
+        large ? "text-xl sm:text-2xl" : "text-xs",
+      )}
       title="Session elapsed time"
     >
       {formatElapsed(now - startedAt)}
@@ -35,45 +41,101 @@ function SessionTimer({ startedAt }: { startedAt: number }) {
   );
 }
 
-/** T21: live telemetry — real states, turn/claim counters, versions. */
-function TelemetryDrawer({ interview }: { interview: InterviewApi }) {
-  const { detail, interviewState, policyVersion, claimsFound, startedAt } = interview;
-  const rows: [string, string][] = [
-    ["State", detail?.state ?? interviewState ?? "—"],
-    ["Turns", detail != null ? String(detail.turns) : "—"],
-    ["Claims extracted", detail != null ? String(detail.claims) : String(claimsFound)],
-    ["Policy", detail?.policy_version ?? policyVersion ?? "—"],
-    ["Engine", detail?.engine_version ?? "—"],
+const FOCUS_ROWS = ["Technical depth", "Clarity", "Trade-offs", "Examples"];
+
+/** Session-info rail (image 04): STATE/TURNS/TIME/CLAIMS/FOLLOW-UPS, current
+    focus, next question. Follow-ups derive from real Miki message counts —
+    the backend exposes no counter. Wiring otherwise untouched. */
+function SessionRail({ interview }: { interview: InterviewApi }) {
+  const { detail, interviewState, claimsFound, messages, startedAt, sessionId } =
+    interview;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+  const followUps = Math.max(
+    0,
+    messages.filter((m) => m.who === "miki").length - 1,
+  );
+  const rows: [string, string, boolean][] = [
+    ["State", detail?.state ?? interviewState ?? "—", true],
+    ["Turns", detail != null ? String(detail.turns) : "—", false],
+    ["Time", startedAt != null ? formatElapsed(now - startedAt) : "—", false],
     [
-      "Started",
-      startedAt != null
-        ? new Date(startedAt).toLocaleTimeString()
-        : (detail?.started_at ?? "—"),
+      "Claims detected",
+      detail != null ? String(detail.claims) : String(claimsFound),
+      false,
     ],
+    ["Follow ups", String(followUps), false],
   ];
   return (
     <aside
-      aria-label="Session telemetry"
-      className="rounded-xl border border-white/[0.08] bg-black/30 p-4"
+      aria-label="Session info"
+      className="rounded-none border border-white/[0.14] bg-[#06090A] p-5"
     >
-      <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
-        Live telemetry
-      </p>
-      <dl className="mt-2 space-y-1.5 text-sm">
-        {rows.map(([k, v]) => (
-          <div key={k} className="flex items-center justify-between gap-2">
-            <dt className="text-xs text-zinc-500">{k}</dt>
-            <dd className="font-mono text-xs tabular-nums text-zinc-200">{v}</dd>
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.14] pb-3">
+        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-[#83DDDA]">
+          Session info
+        </h2>
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#8FA3A0]">
+          {sessionId != null
+            ? `SES-${String(sessionId).padStart(3, "0")}`
+            : "SES-···"}
+        </p>
+      </div>
+      <dl className="mt-4 space-y-2.5">
+        {rows.map(([k, v, hot]) => (
+          <div key={k} className="flex items-baseline justify-between gap-2">
+            <dt className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0]">
+              {k}
+            </dt>
+            <dd
+              className={cn(
+                "font-mono text-xs tabular-nums",
+                hot && v.toLowerCase() === "live"
+                  ? "uppercase tracking-[0.14em] text-[#3AA99E]"
+                  : "text-[#83DDDA]",
+              )}
+            >
+              {v}
+            </dd>
           </div>
         ))}
       </dl>
+      <div className="mt-5 border-t border-white/[0.14] pt-4">
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#8FA3A0]">
+          Current focus
+        </h3>
+        <ul className="mt-3 space-y-2">
+          {FOCUS_ROWS.map((f) => (
+            <li
+              key={f}
+              className="flex items-baseline justify-between gap-2 font-mono text-[11px] uppercase tracking-[0.14em]"
+            >
+              <span className="text-[#8FA3A0]">{f}</span>
+              <span className="text-[#3AA99E]">→ ON</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="mt-5 border-t border-white/[0.14] pt-4">
+        <h3 className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#8FA3A0]">
+          Next question
+        </h3>
+        <p className="mt-2 font-serif text-[15px] italic leading-relaxed text-[#8FA3A0]">
+          {interview.status === "thinking" || interview.status === "starting"
+            ? "Miki is choosing a follow-up…"
+            : "Answer above — Miki's follow-up lands in the ledger."}
+        </p>
+      </div>
     </aside>
   );
 }
 
 export default function InterviewCard({ interview, voice }: Props) {
   const navigate = useNavigate();
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [railOpen, setRailOpen] = useState(true);
   const active = interview.stage !== "setup";
   const busy = interview.status === "thinking" || interview.status === "starting";
 
@@ -94,11 +156,14 @@ export default function InterviewCard({ interview, voice }: Props) {
 
   if (!active) {
     return (
-      <div className="rounded-xl border border-white/[0.08] bg-zinc-900/60 p-5 shadow-xl sm:p-6">
-        <div className="rounded-xl border border-white/[0.08] bg-black/30 px-4 py-8 text-center text-sm text-zinc-400">
+      <div className="rounded-none border border-white/[0.08] bg-[#0E1223] p-5 sm:p-6">
+        <div className="border border-white/[0.08] bg-black/30 px-4 py-8 text-center font-serif text-[15px] text-[#8FA3A0]">
           Complete setup to unlock the arena.{" "}
-          <Link to="/setup" className="text-cyan-300 hover:text-white">
-            Go to setup
+          <Link
+            to="/setup"
+            className="rounded-none font-mono text-xs uppercase tracking-[0.14em] text-[#3AA99E] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring"
+          >
+            Go to setup →
           </Link>
         </div>
       </div>
@@ -107,11 +172,14 @@ export default function InterviewCard({ interview, voice }: Props) {
 
   if (interview.stage === "report") {
     return (
-      <div className="rounded-xl border border-white/[0.08] bg-zinc-900/60 p-5 shadow-xl sm:p-6">
-        <div className="rounded-xl border border-white/[0.08] bg-black/30 px-4 py-8 text-center text-sm text-zinc-400">
+      <div className="rounded-none border border-white/[0.08] bg-[#0E1223] p-5 sm:p-6">
+        <div className="border border-white/[0.08] bg-black/30 px-4 py-8 text-center font-serif text-[15px] text-[#8FA3A0]">
           Session complete.{" "}
-          <Link to="/report" className="text-cyan-300 hover:text-white">
-            View your report
+          <Link
+            to="/report"
+            className="rounded-none font-mono text-xs uppercase tracking-[0.14em] text-[#3AA99E] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring"
+          >
+            View your report →
           </Link>
         </div>
       </div>
@@ -119,52 +187,40 @@ export default function InterviewCard({ interview, voice }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.08] bg-zinc-900/60 p-5 shadow-xl sm:p-6">
-      {/* T16: session header */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {interview.sessionId != null && (
-            <Badge>session #{interview.sessionId}</Badge>
-          )}
-          {interview.interviewState && (
-            <Badge tone="cyan" dot>
-              {interview.interviewState}
-            </Badge>
-          )}
-          {interview.claimsFound > 0 && (
-            <Badge tone="amber">{interview.claimsFound} claims</Badge>
-          )}
-          {interview.policyVersion && (
-            <Badge>policy {interview.policyVersion}</Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {interview.startedAt != null && (
-            <SessionTimer startedAt={interview.startedAt} />
-          )}
-          <button
-            type="button"
-            onClick={() => setDrawerOpen((o) => !o)}
-            aria-expanded={drawerOpen}
-            className="rounded-lg px-3 py-1.5 text-sm text-neutral-400 transition-colors hover:bg-white/[0.05] hover:text-white focus-ring"
-          >
-            {drawerOpen ? "Hide context" : "Show context"}
-          </button>
-          <Button variant="danger" onClick={() => void handleEnd()}>
-            End Session
-          </Button>
+    <div className="space-y-4 pt-4">
+      {/* session header */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Breadcrumb trail={[{ label: "Session" }, { label: "Live" }]} />
+        <div className="flex items-center gap-5">
+          <Stamp tone="teal">Live</Stamp>
+          <p className="flex items-baseline gap-3">
+            <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#8FA3A0]">
+              Time elapsed
+            </span>
+            {interview.startedAt != null ? (
+              <SessionTimer startedAt={interview.startedAt} large />
+            ) : (
+              <span className="font-mono text-xl tabular-nums text-[#83DDDA]">
+                --:--:--
+              </span>
+            )}
+          </p>
         </div>
       </div>
 
-      {/* T17: dual-pane workbench */}
       <div
         className={cn(
-          "mt-4 grid gap-4",
-          drawerOpen && active ? "md:grid-cols-[minmax(0,1fr)_240px]" : "grid-cols-1",
+          "grid items-start gap-4",
+          railOpen ? "lg:grid-cols-[minmax(0,1fr)_300px]" : "grid-cols-1",
         )}
       >
         <div className="min-w-0 space-y-4">
-          <ChatThread messages={interview.messages} />
+          <div className="rounded-none border border-white/[0.14] bg-[#06090A]">
+            <ChatThread
+              messages={interview.messages}
+              startedAt={interview.startedAt}
+            />
+          </div>
           {busy && <Spinner label="Miki is thinking…" />}
           <Composer
             busy={busy}
@@ -177,7 +233,21 @@ export default function InterviewCard({ interview, voice }: Props) {
             onToggleVoice={voice.toggle}
           />
         </div>
-        {drawerOpen && <TelemetryDrawer interview={interview} />}
+        {railOpen && <SessionRail interview={interview} />}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setRailOpen((o) => !o)}
+          aria-expanded={railOpen}
+          className="rounded-none px-2 py-1 font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring"
+        >
+          {railOpen ? "Hide session info" : "Show session info"}
+        </button>
+        <Button variant="danger" onClick={() => void handleEnd()}>
+          End session
+        </Button>
       </div>
     </div>
   );

@@ -1,8 +1,33 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChatMessage } from "../../types/api";
 import { cn } from "../../lib/cn";
 
-export default function ChatThread({ messages }: { messages: ChatMessage[] }) {
+function formatStamp(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+/** Session-relative arrival time, captured once when the row mounts
+    (messages carry no timestamps from the backend). */
+function MsgTime({ startedAt }: { startedAt: number | null }) {
+  const [at] = useState(() => Date.now());
+  if (startedAt == null) return null;
+  return <>{formatStamp(at - startedAt)}</>;
+}
+
+/** Transcript ledger: avatar ring (M teal / H sage) + serif name + mono
+    timestamp + serif message, hairline separators. Arrival times are captured
+    presentationally relative to session start (messages carry no timestamps). */
+export default function ChatThread({
+  messages,
+  startedAt,
+}: {
+  messages: ChatMessage[];
+  startedAt: number | null;
+}) {
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -12,8 +37,8 @@ export default function ChatThread({ messages }: { messages: ChatMessage[] }) {
 
   if (messages.length === 0) {
     return (
-      <div className="rounded-xl border border-white/[0.08] bg-black/30 px-4 py-8 text-center text-sm text-zinc-400">
-        Start the interview above — Miki&apos;s opening question lands here.
+      <div className="px-4 py-10 text-center font-serif text-[15px] text-[#8FA3A0]">
+        Miki&apos;s opening question lands here — answer by voice or text.
       </div>
     );
   }
@@ -22,30 +47,47 @@ export default function ChatThread({ messages }: { messages: ChatMessage[] }) {
     <div
       ref={boxRef}
       aria-live="polite"
-      className="chat-scroll min-h-[12rem] max-h-[26rem] space-y-2.5 overflow-y-auto pr-1"
+      className="chat-scroll max-h-[30rem] min-h-[12rem] overflow-y-auto"
     >
-      {messages.map((m) => (
-        <div
-          key={m.id}
-          className={cn(
-            "msg-in max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
-            m.who === "miki"
-              ? "border border-white/[0.08] bg-white/[0.06] text-zinc-50"
-              : "ml-auto border border-white/10 bg-white/[0.03] text-right text-zinc-50",
-          )}
-        >
-          <p
-            className={
-              m.who === "miki"
-                ? "mb-1 text-[10px] font-medium tracking-[0.16em] text-amber-300"
-                : "mb-1 text-[10px] tracking-[0.16em] text-zinc-500"
-            }
+      {messages.map((m) => {
+        const miki = m.who === "miki";
+        return (
+          <div
+            key={m.id}
+            className="msg-in flex gap-4 border-b border-white/[0.08] px-5 py-4 last:border-b-0"
           >
-            {m.who === "miki" ? "MIKI" : m.voice ? "YOU · VOICE" : "YOU"}
-          </p>
-          <p className="whitespace-pre-wrap">{m.text}</p>
-        </div>
-      ))}
+            <span
+              aria-hidden="true"
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border font-serif text-sm font-semibold",
+                miki
+                  ? "border-[#3AA99E] text-[#3AA99E]"
+                  : "border-[#83DDDA] text-[#83DDDA]",
+              )}
+            >
+              {miki ? "M" : "H"}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="flex flex-wrap items-baseline gap-x-3">
+                <span className="font-serif text-base font-semibold text-[#83DDDA]">
+                  {miki ? "Miki" : "You"}
+                </span>
+                <span className="font-mono text-[11px] tabular-nums text-[#8FA3A0]">
+                  <MsgTime startedAt={startedAt} />
+                </span>
+                {!miki && m.voice && (
+                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#3AA99E]">
+                    · voice
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 whitespace-pre-wrap font-serif text-[15px] leading-relaxed text-[#83DDDA]">
+                {m.text}
+              </p>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -14,6 +14,8 @@ interface Props {
   onToggleVoice: () => void;
 }
 
+/** Composer bar (image 04): underline input + orange mic + waveform + hold-space hint.
+    Text send stays available (Enter / send button) — backend wiring unchanged. */
 export default function Composer({
   busy,
   recording,
@@ -33,26 +35,14 @@ export default function Composer({
     onSend(t);
   };
 
-  const showWave = recording || speaking;
-
   return (
-    <div>
-      {showWave && (
-        <div className="mb-2">
-          <Waveform
-            getAnalyser={getAnalyser}
-            active={recording || speaking}
-            tone={recording ? "cyan" : "emerald"}
-            label={
-              recording
-                ? "Microphone input level"
-                : "Miki voice playback level"
-            }
-          />
-        </div>
-      )}
-      <div className="flex gap-2">
+    <div className="border border-white/[0.14] bg-[#06090A] px-4 py-3 sm:px-5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <label htmlFor="composer-input" className="sr-only">
+          Press and speak or type a message
+        </label>
         <textarea
+          id="composer-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -61,40 +51,54 @@ export default function Composer({
               send();
             }
           }}
-          rows={2}
-          placeholder="Type your answer… (Enter to send)"
+          rows={1}
+          placeholder="Press and speak or type a message…"
           disabled={busy && !recording}
-          className="chat-scroll min-h-[3.2rem] flex-1 resize-y rounded-xl border border-white/[0.06] bg-[rgba(24,24,27,0.6)] px-3.5 py-2.5 text-sm text-zinc-50 placeholder:text-zinc-500 focus:border-white/25 focus:outline-none"
+          className="input-underline min-w-[12rem] flex-1 italic"
         />
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={send}
-            disabled={!draft.trim() || busy}
-            aria-label="Send answer"
-            className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-zinc-950 shadow-sm transition-colors hover:bg-neutral-200 disabled:opacity-50"
-          >
-            <Send size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={onToggleVoice}
-            disabled={!canVoice}
-            aria-label={recording ? "Stop recording" : "Start voice recording"}
-            title={voiceStatus}
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-lg border transition-colors focus-ring",
+        <button
+          type="button"
+          onClick={send}
+          disabled={!draft.trim() || busy}
+          aria-label="Send answer"
+          title="Send (Enter)"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-none border border-[#83DDDA]/60 text-[#83DDDA] transition-colors duration-150 ease-out hover:bg-[#83DDDA]/10 disabled:cursor-not-allowed disabled:opacity-40 focus-ring"
+        >
+          <Send size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleVoice}
+          disabled={!canVoice}
+          aria-label={recording ? "Stop recording" : "Start voice recording"}
+          title={voiceStatus}
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E4621F] text-black transition-colors duration-150 ease-out hover:bg-[#f07433] focus-ring",
+            recording && "voice-live",
+            !canVoice && "cursor-not-allowed opacity-40",
+          )}
+        >
+          {recording ? <Square size={16} /> : <Mic size={17} />}
+        </button>
+        <div className="w-36 shrink-0 sm:w-48" aria-hidden="true">
+          <Waveform
+            getAnalyser={getAnalyser}
+            active={recording || speaking}
+            tone={recording ? "teal" : "sage"}
+            label={
               recording
-                ? "voice-live border-cyan-500/20 bg-cyan-500/10 text-cyan-400"
-                : "border-white/10 bg-white/[0.03] text-neutral-400 hover:bg-white/[0.08] hover:text-white",
-              !canVoice && "cursor-not-allowed opacity-40",
-            )}
-          >
-            {recording ? <Square size={15} /> : <Mic size={16} />}
-          </button>
+                ? "Microphone input level"
+                : "Miki voice playback level"
+            }
+          />
         </div>
+        <p className="shrink-0 font-mono text-[11px] uppercase leading-relaxed tracking-[0.14em] text-[#8FA3A0]">
+          Hold space
+          <br />
+          to talk
+        </p>
       </div>
-      <p className="mt-2 text-[11px] text-zinc-500" role="status">
+      <p className="mt-1.5 font-mono text-[11px] tabular-nums text-[#8FA3A0]" role="status">
         {recording ? "● " : ""}
         {voiceStatus}
       </p>
