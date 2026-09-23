@@ -73,7 +73,7 @@ export default function DemoTeaser() {
         </p>
         <Link
           to="/setup"
-          className="rounded-none bg-[#E4621F] px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-[0.14em] text-black transition-colors duration-150 ease-out hover:bg-[#f07433] focus-ring"
+          className="rounded-none bg-[#E4621F] px-5 py-2.5 font-mono text-xs font-medium uppercase tracking-[0.14em] text-black transition-all duration-150 ease-out hover:brightness-110 focus-ring"
         >
           Try it live →
         </Link>

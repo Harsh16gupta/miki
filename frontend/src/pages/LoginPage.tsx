@@ -45,7 +45,7 @@ export default function LoginPage() {
     return (
       <AuthLayout title="Already signed in" subtitle="You're good to go.">
         <Button variant="primary" onClick={() => navigate(from, { replace: true })}>
-          Continue
+          Continue →
         </Button>
       </AuthLayout>
     );
@@ -83,13 +83,13 @@ export default function LoginPage() {
             type="button"
             onClick={() => setShowPw((s) => !s)}
             aria-pressed={showPw}
-            className="mt-1.5 rounded text-xs text-neutral-400 transition-colors hover:text-white focus-ring"
+            className="mt-1.5 rounded-none font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring"
           >
             {showPw ? "Hide password" : "Show password"}
           </button>
         </div>
         {serverError && (
-          <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/[0.08] px-3 py-2 text-sm text-red-400">
+          <p role="alert" className="rounded-none border border-red-500/30 bg-red-500/[0.08] px-3 py-2 font-mono text-xs text-[#f87171]">
             {serverError}
           </p>
         )}
@@ -97,15 +97,15 @@ export default function LoginPage() {
           variant="primary"
           type="submit"
           disabled={busy}
-          className="w-full justify-center"
+          className="w-full justify-center py-3"
         >
-          {busy ? "Signing in…" : "Sign In"}
+          {busy ? "Signing in…" : "Sign in →"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-zinc-500">
+      <p className="mt-4 text-center font-serif text-[15px] text-[#8FA3A0]">
         No account?{" "}
-        <Link to="/signup" className="text-cyan-300 hover:text-white focus-ring">
-          Create one
+        <Link to="/signup" className="rounded-none font-mono text-xs uppercase tracking-[0.14em] text-[#3AA99E] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring">
+          Create one →
         </Link>
       </p>
     </AuthLayout>

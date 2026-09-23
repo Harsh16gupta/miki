@@ -73,7 +73,7 @@ export default function Composer({
           aria-label={recording ? "Stop recording" : "Start voice recording"}
           title={voiceStatus}
           className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E4621F] text-black transition-colors duration-150 ease-out hover:bg-[#f07433] focus-ring",
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#E4621F] text-black transition-all duration-150 ease-out hover:brightness-110 focus-ring",
             recording && "voice-live",
             !canVoice && "cursor-not-allowed opacity-40",
           )}

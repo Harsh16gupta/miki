@@ -9,7 +9,7 @@ type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const buttonStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#E4621F] text-black hover:bg-[#f07433] font-mono font-medium uppercase tracking-[0.14em] px-5 py-2.5 rounded-sm text-xs transition-colors duration-150 ease-out disabled:opacity-50 disabled:pointer-events-none",
+    "bg-[#E4621F] text-black hover:brightness-110 font-mono font-medium uppercase tracking-[0.14em] px-5 py-2.5 rounded-sm text-xs transition-colors duration-150 ease-out disabled:opacity-50 disabled:pointer-events-none",
   secondary:
     "border border-[#83DDDA]/60 bg-transparent text-[#83DDDA] hover:bg-[#83DDDA]/10 hover:border-[#83DDDA] font-mono uppercase tracking-[0.14em] px-5 py-2.5 rounded-sm text-xs transition-colors duration-150 ease-out disabled:opacity-50 disabled:pointer-events-none",
   ghost:

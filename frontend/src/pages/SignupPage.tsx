@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/auth/AuthLayout";
 import { Button, Input } from "../components/common/Primitives";
 import { useAuth } from "../app/useAuth";
-import { passwordStrength, strengthBarColors } from "../lib/passwordStrength";
+import { passwordStrength } from "../lib/passwordStrength";
 
 function isEmail(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
@@ -55,7 +55,7 @@ export default function SignupPage() {
     return (
       <AuthLayout title="Already signed in" subtitle="You're good to go.">
         <Button variant="primary" onClick={() => navigate("/setup", { replace: true })}>
-          Go to Setup
+          Go to setup →
         </Button>
       </AuthLayout>
     );
@@ -102,52 +102,56 @@ export default function SignupPage() {
           />
           {password.length > 0 && (
             <div className="mt-2 flex items-center gap-2" aria-live="polite">
-              <div className="flex flex-1 gap-1">
+              <div className="flex flex-1 gap-1" aria-hidden="true">
                 {[0, 1, 2, 3].map((i) => (
                   <span
                     key={i}
                     className={
-                      "h-1.5 flex-1 rounded-full " +
+                      "h-1.5 flex-1 rounded-none " +
                       (i < strength.score
-                        ? strengthBarColors[strength.score]
+                        ? strength.score >= 3
+                          ? "bg-[#3AA99E]"
+                          : strength.score >= 1
+                            ? "bg-[#E4621F]"
+                            : "bg-[#f87171]"
                         : "bg-white/10")
                     }
                   />
                 ))}
               </div>
-              <span className="text-xs text-zinc-400">{strength.label}</span>
+              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0]">{strength.label}</span>
             </div>
           )}
           <button
             type="button"
             onClick={() => setShowPw((s) => !s)}
             aria-pressed={showPw}
-            className="mt-1.5 rounded text-xs text-neutral-400 transition-colors hover:text-white focus-ring"
+            className="mt-1.5 rounded-none font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring"
           >
             {showPw ? "Hide password" : "Show password"}
           </button>
         </div>
         <div>
-          <label className="flex cursor-pointer items-start gap-2.5 rounded-lg p-1 focus-within:outline focus-within:outline-2 focus-within:outline-white/60">
+          <label className="flex cursor-pointer items-start gap-2.5 rounded-none p-1 focus-within:outline focus-within:outline-2 focus-within:outline-[#83DDDA]/70">
             <input
               type="checkbox"
               checked={terms}
               onChange={(e) => setTerms(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-white"
+              className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-none accent-[#3AA99E]"
             />
-            <span className="text-sm leading-relaxed text-neutral-300">
+            <span className="font-serif text-[15px] leading-relaxed text-[#8FA3A0]">
               I agree to the Terms of Service and Privacy Policy. My uploads
               stay in this backend.
             </span>
           </label>
           {errors.terms && (
-            <p role="alert" className="mt-1.5 text-xs text-red-400">
+            <p role="alert" className="mt-1.5 font-mono text-xs text-[#f87171]">
               {errors.terms}
             </p>
           )}
         </div>
         {serverError && (
-          <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/[0.08] px-3 py-2 text-sm text-red-400">
+          <p role="alert" className="rounded-none border border-red-500/30 bg-red-500/[0.08] px-3 py-2 font-mono text-xs text-[#f87171]">
             {serverError}
           </p>
         )}
@@ -155,15 +159,15 @@ export default function SignupPage() {
           variant="primary"
           type="submit"
           disabled={busy}
-          className="w-full justify-center"
+          className="w-full justify-center py-3"
         >
-          {busy ? "Creating account…" : "Create Account"}
+          {busy ? "Creating account…" : "Create account →"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-zinc-500">
+      <p className="mt-4 text-center font-serif text-[15px] text-[#8FA3A0]">
         Have an account?{" "}
-        <Link to="/login" className="text-cyan-300 hover:text-white focus-ring">
-          Sign in
+        <Link to="/login" className="rounded-none font-mono text-xs uppercase tracking-[0.14em] text-[#3AA99E] transition-colors duration-150 ease-out hover:text-[#83DDDA] focus-ring">
+          Sign in →
         </Link>
       </p>
     </AuthLayout>

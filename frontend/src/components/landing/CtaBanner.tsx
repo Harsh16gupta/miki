@@ -14,7 +14,7 @@ export default function CtaBanner() {
       <div className="mt-6">
         <Link
           to="/setup"
-          className="inline-block rounded-none bg-[#E4621F] px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.14em] text-black transition-colors duration-150 ease-out hover:bg-[#f07433] focus-ring"
+          className="inline-block rounded-none bg-[#E4621F] px-6 py-3 font-mono text-xs font-medium uppercase tracking-[0.14em] text-black transition-all duration-150 ease-out hover:brightness-110 focus-ring"
         >
           Start practicing →
         </Link>
