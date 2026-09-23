@@ -1,18 +1,21 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { cn } from "../../lib/cn";
 
-/* ---- Button (DESIGN.md §5) ---- */
+/* ---- Button (DESIGN.md §5) ----
+   primary: solid accent, black text, mono uppercase + arrow (one per viewport).
+   secondary: 1px sage outline. ghost: quiet. danger: errors only.
+   Prop signature unchanged so callers don't break. */
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const buttonStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-white text-zinc-950 hover:bg-neutral-200 font-medium px-4 py-2 rounded-lg text-sm transition-colors shadow-sm disabled:opacity-50",
+    "bg-[#E4621F] text-black hover:bg-[#f07433] font-mono font-medium uppercase tracking-[0.14em] px-5 py-2.5 rounded-sm text-xs transition-colors duration-150 ease-out disabled:opacity-50 disabled:pointer-events-none",
   secondary:
-    "border border-white/10 bg-white/[0.03] text-neutral-200 hover:bg-white/[0.08] hover:text-white px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50",
+    "border border-[#83DDDA]/60 bg-transparent text-[#83DDDA] hover:bg-[#83DDDA]/10 hover:border-[#83DDDA] font-mono uppercase tracking-[0.14em] px-5 py-2.5 rounded-sm text-xs transition-colors duration-150 ease-out disabled:opacity-50 disabled:pointer-events-none",
   ghost:
-    "text-neutral-400 hover:text-white hover:bg-white/[0.05] px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50",
+    "text-[#8FA3A0] hover:text-[#83DDDA] hover:bg-white/[0.05] font-mono uppercase tracking-[0.14em] px-3 py-1.5 rounded-sm text-xs transition-colors duration-150 ease-out disabled:opacity-50 disabled:pointer-events-none",
   danger:
-    "border border-red-500/30 bg-red-500/[0.08] text-red-400 hover:bg-red-500/[0.14] hover:text-red-300 px-4 py-2 rounded-lg text-sm transition-colors disabled:opacity-50",
+    "border border-red-500/30 bg-red-500/[0.08] text-[#f87171] hover:bg-red-500/[0.14] font-mono uppercase tracking-[0.14em] px-5 py-2.5 rounded-sm text-xs transition-colors duration-150 ease-out disabled:opacity-50 disabled:pointer-events-none",
 };
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -29,7 +32,7 @@ export function Button({ variant = "primary", className, ...rest }: ButtonProps)
   );
 }
 
-/* ---- Card (DESIGN.md §5): single-level container, no nested cards ---- */
+/* ---- Card (DESIGN.md §5): sharp single-level container, no nested cards ---- */
 export function Card({
   children,
   className,
@@ -40,7 +43,7 @@ export function Card({
   return (
     <section
       className={cn(
-        "rounded-xl border border-white/[0.08] bg-zinc-900/60 p-5 shadow-xl sm:p-6",
+        "rounded-none border border-white/[0.08] bg-[#0E1223] p-5 shadow-none sm:p-6",
         className,
       )}
     >
@@ -49,22 +52,25 @@ export function Card({
   );
 }
 
-/* ---- Badge (DESIGN.md §5) with optional dot indicator ---- */
+/* ---- Badge (DESIGN.md §5): sharp mono chip; tone mapping keeps callers working ----
+   default → hairline/sage · success → teal · amber → accent (gold retired) · cyan → teal */
 type BadgeTone = "default" | "success" | "amber" | "cyan";
 
 const badgeStyles: Record<BadgeTone, string> = {
-  default: "bg-white/[0.06] text-neutral-300 border border-white/[0.08]",
+  default:
+    "bg-white/[0.04] text-[#8FA3A0] border border-white/[0.14]",
   success:
-    "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-  amber: "bg-amber-500/10 text-amber-300 border border-amber-500/20",
-  cyan: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
+    "bg-[#3AA99E]/10 text-[#3AA99E] border border-[#3AA99E]/40",
+  amber:
+    "bg-[#E4621F]/10 text-[#E4621F] border border-[#E4621F]/40",
+  cyan: "bg-[#3AA99E]/10 text-[#3AA99E] border border-[#3AA99E]/40",
 };
 
 const dotStyles: Record<BadgeTone, string> = {
-  default: "bg-neutral-400",
-  success: "bg-emerald-400",
-  amber: "bg-amber-400",
-  cyan: "bg-cyan-400",
+  default: "bg-[#8FA3A0]",
+  success: "bg-[#3AA99E]",
+  amber: "bg-[#E4621F]",
+  cyan: "bg-[#3AA99E]",
 };
 
 export function Badge({
@@ -81,7 +87,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium",
+        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-none border text-[11px] font-mono font-medium uppercase tracking-[0.14em]",
         badgeStyles[tone],
         className,
       )}
@@ -92,7 +98,31 @@ export function Badge({
   );
 }
 
-/* ---- Input (Surface 2 per DESIGN.md §2) ---- */
+/* ---- Stamp: rotated 2px-bordered badge for EVIDENCE-GROUNDED / VOICE-FIRST / LIVE / SETUP ---- */
+export function Stamp({
+  children,
+  tone = "accent",
+  className,
+}: {
+  children: ReactNode;
+  tone?: "accent" | "teal";
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "stamp",
+        tone === "accent" ? "stamp-accent" : "stamp-teal",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/* ---- Input: underline style (transparent bg, bottom hairline, serif value) ----
+   Props unchanged: label / hint / error / id passthrough + a11y wiring. */
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   hint?: string;
@@ -105,7 +135,7 @@ export function Input({ label, hint, error, className, id, ...rest }: InputProps
       {label && (
         <label
           htmlFor={id}
-          className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-neutral-400"
+          className="input-label"
         >
           {label}
         </label>
@@ -114,21 +144,15 @@ export function Input({ label, hint, error, className, id, ...rest }: InputProps
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
-        className={cn(
-          "w-full rounded-lg border bg-[rgba(24,24,27,0.6)] px-3 py-2 text-sm text-zinc-50 placeholder:text-zinc-500 transition-colors focus-ring",
-          error
-            ? "border-red-500/30 focus:border-red-500/60"
-            : "border-white/[0.06] focus:border-white/25",
-          className,
-        )}
+        className={cn("input-underline", error && "border-red-500/60", className)}
         {...rest}
       />
       {error ? (
-        <p id={`${id}-error`} role="alert" className="mt-1.5 text-xs text-red-400">
+        <p id={`${id}-error`} role="alert" className="mt-1.5 font-mono text-xs text-[#f87171]">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="mt-1.5 text-xs text-zinc-500">
+        <p id={`${id}-hint`} className="mt-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0]">
           {hint}
         </p>
       ) : null}
@@ -136,11 +160,11 @@ export function Input({ label, hint, error, className, id, ...rest }: InputProps
   );
 }
 
-/* ---- Spinner / busy indicator ---- */
+/* ---- Spinner / busy indicator (teal) ---- */
 export function Spinner({ label = "Loading…" }: { label?: string }) {
   return (
-    <span className="inline-flex items-center gap-2 text-sm text-zinc-400" role="status">
-      <span className="live-dot inline-block h-2 w-2 animate-pulse rounded-full bg-cyan-500" />
+    <span className="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.14em] text-[#8FA3A0]" role="status">
+      <span className="live-dot inline-block h-2 w-2 animate-pulse rounded-full bg-[#3AA99E]" />
       {label}
     </span>
   );
@@ -157,14 +181,14 @@ export function Toast({
   return (
     <div
       role="alert"
-      className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 rounded-xl border border-red-500/30 bg-[#18181b] px-4 py-3 shadow-xl"
+      className="fixed bottom-5 left-1/2 z-50 w-[min(92vw,28rem)] -translate-x-1/2 rounded-none border border-red-500/30 bg-[#06090A] px-4 py-3"
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-red-400">{message}</p>
+        <p className="font-serif text-sm text-[#f87171]">{message}</p>
         <button
           type="button"
           onClick={onDismiss}
-          className="rounded-lg px-2.5 py-0.5 text-xs text-neutral-400 transition-colors hover:bg-white/[0.05] hover:text-white focus-ring"
+          className="rounded-none px-2.5 py-0.5 font-mono text-xs uppercase tracking-[0.14em] text-[#8FA3A0] transition-colors duration-150 ease-out hover:bg-white/[0.05] hover:text-[#83DDDA] focus-ring"
         >
           Dismiss
         </button>
