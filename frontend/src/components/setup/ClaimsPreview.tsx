@@ -14,7 +14,7 @@ function ChipList({ items, tone }: { items: string[]; tone: "amber" | "cyan" | "
   );
 }
 
-/** T14: collapsible inspection panel over parsed claims + required skills. */
+/** Collapsible inspection panel over parsed claims + required skills (mono chips). */
 export default function ClaimsPreview({
   candClaimsList,
   candSkills,
@@ -30,17 +30,17 @@ export default function ClaimsPreview({
     roleSkillsList.length === 0;
   if (empty) return null;
   return (
-    <details className="group mt-4 rounded-xl border border-white/[0.08] bg-black/30 p-4">
-      <summary className="cursor-pointer text-sm font-medium text-zinc-50 focus-ring">
+    <details className="group rounded-none border border-white/[0.08] bg-[#0E1223] p-4">
+      <summary className="cursor-pointer font-mono text-xs uppercase tracking-[0.18em] text-[#83DDDA] focus-ring">
         Inspect extracted claims & skills
-        <span className="ml-2 text-xs font-normal text-zinc-500">
+        <span className="ml-2 tabular-nums text-[#8FA3A0]">
           {candClaimsList.length} claims · {roleSkillsList.length} required skills
         </span>
       </summary>
       <div className="mt-3 space-y-3">
         {candClaimsList.length > 0 && (
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#8FA3A0]">
               Resume claims
             </p>
             <ChipList items={candClaimsList} tone="amber" />
@@ -48,7 +48,7 @@ export default function ClaimsPreview({
         )}
         {candSkills.length > 0 && (
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#8FA3A0]">
               Candidate skills
             </p>
             <ChipList items={candSkills} tone="default" />
@@ -56,7 +56,7 @@ export default function ClaimsPreview({
         )}
         {roleSkillsList.length > 0 && (
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#8FA3A0]">
               Required skills
             </p>
             <ChipList items={roleSkillsList} tone="cyan" />

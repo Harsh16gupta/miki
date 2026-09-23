@@ -1,30 +1,27 @@
-import { Play } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Check } from "lucide-react";
 import type { InterviewApi } from "../../hooks/useInterview";
-import { Badge, Card, Spinner } from "../common/Primitives";
+import { Button, Spinner } from "../common/Primitives";
 import Dropzone from "./Dropzone";
 
-function CheckItem({ done, label }: { done: boolean; label: string }) {
+function NumberChip({ n }: { n: string }) {
   return (
-    <li className="flex items-center gap-2">
-      <span
-        aria-hidden="true"
-        className={
-          done
-            ? "flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/15 text-[10px] text-emerald-400"
-            : "h-4 w-4 rounded-full border border-white/15"
-        }
-      >
-        {done ? "✓" : ""}
-      </span>
-      <span className={done ? "text-zinc-200" : "text-zinc-500"}>{label}</span>
-    </li>
+    <span
+      aria-hidden="true"
+      className="flex h-6 w-6 shrink-0 items-center justify-center border border-white/[0.2] font-mono text-xs text-[#83DDDA]"
+    >
+      {n}
+    </span>
   );
 }
 
+/** Session-setup form panel (image 03). JD paste is bridged to the frozen
+    file-upload backend by wrapping text in a .txt File — hooks/api untouched. */
 export default function SetupCard({ interview }: { interview: InterviewApi }) {
   const { profiles, status } = interview;
   const navigate = useNavigate();
+  const [jdText, setJdText] = useState("");
   const canStart =
     profiles.candId != null && profiles.roleId != null && status !== "starting";
 
@@ -33,25 +30,36 @@ export default function SetupCard({ interview }: { interview: InterviewApi }) {
     if (ok) navigate("/interview");
   };
 
+  const handleAttachPaste = () => {
+    const clean = jdText.trim();
+    if (!clean || status === "uploading") return;
+    const file = new File([clean], "job-description.txt", { type: "text/plain" });
+    void interview.uploadProfile("role", file);
+  };
+
   return (
-    <Card className="px-6 py-6 sm:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-medium tracking-tight text-white sm:text-xl">
-          <span className="mr-2 font-mono text-xs text-amber-300">01</span> Profiles
+    <aside aria-label="Session setup" className="panel-hard p-6 sm:p-8">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.14] pb-4">
+        <h2 className="font-mono text-xs uppercase tracking-[0.18em] text-[#83DDDA]">
+          Session setup
         </h2>
-        <div className="flex gap-1.5">
-          {profiles.candId != null && (
-            <Badge tone="amber">{profiles.candClaims} claims</Badge>
-          )}
-          {profiles.roleId != null && (
-            <Badge tone="amber">{profiles.roleSkills} req. skills</Badge>
-          )}
-        </div>
+        <p className="font-mono text-xs uppercase tracking-[0.18em] text-[#8FA3A0]">
+          Form · SES-001
+        </p>
       </div>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+
+      {/* 1 — resume */}
+      <div className="mt-6 flex items-center gap-3">
+        <NumberChip n="1" />
+        <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-[#83DDDA]">
+          Upload your resume
+        </h3>
+      </div>
+      <div className="mt-4">
         <Dropzone
-          label="Resume"
-          hint="Drop .pdf / .txt or click to browse"
+          label="your resume"
+          title="Click to upload your resume"
+          hint="PDF or TXT · up to 10MB"
           fileName={profiles.candName}
           meta={
             profiles.candId != null
@@ -61,56 +69,102 @@ export default function SetupCard({ interview }: { interview: InterviewApi }) {
           busy={status === "uploading"}
           onFile={(f) => void interview.uploadProfile("candidate", f)}
         />
-        <Dropzone
-          label="Job description"
-          hint="Drop .pdf / .txt or click to browse"
-          fileName={profiles.roleName}
-          meta={
-            profiles.roleId != null
-              ? `Parsed · id ${profiles.roleId}`
-              : "Not uploaded"
-          }
-          busy={status === "uploading"}
-          onFile={(f) => void interview.uploadProfile("role", f)}
+      </div>
+
+      {/* 2 — job description */}
+      <div className="mt-7 flex items-center gap-3">
+        <NumberChip n="2" />
+        <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-[#83DDDA]">
+          Job description
+        </h3>
+      </div>
+      <div className="mt-4">
+        <label
+          htmlFor="jd-paste"
+          className="input-label sr-only"
+        >
+          Paste the job description
+        </label>
+        <textarea
+          id="jd-paste"
+          rows={3}
+          value={jdText}
+          onChange={(e) => setJdText(e.target.value)}
+          placeholder="Paste the job description here…"
+          className="input-underline min-h-[4.5rem] resize-y italic placeholder:text-[#8FA3A0]/75 focus-ring"
         />
-      </div>
-      <div className="mt-5 border-t border-white/[0.08] pt-4">
-        <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">
-          Readiness checklist
+        <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0]">
+          Include the full description for better results.
         </p>
-        <ul className="mt-2 space-y-1.5 text-sm">
-          <CheckItem
-            done={profiles.candId != null}
-            label={`Resume parsed (${profiles.candClaims} claims)`}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            disabled={jdText.trim() === "" || status === "uploading"}
+            onClick={handleAttachPaste}
+          >
+            {status === "uploading" ? "Attaching…" : "Attach pasted text →"}
+          </Button>
+        </div>
+        <div className="mt-3">
+          <Dropzone
+            compact
+            label="Job description file"
+            hint="…or drop a .pdf / .txt file instead"
+            fileName={profiles.roleName}
+            meta={
+              profiles.roleId != null
+                ? `Parsed · id ${profiles.roleId}`
+                : "Not uploaded"
+            }
+            busy={status === "uploading"}
+            onFile={(f) => void interview.uploadProfile("role", f)}
           />
-          <CheckItem
-            done={profiles.roleId != null}
-            label={`Job description parsed (${profiles.roleSkills} required skills)`}
-          />
-          <CheckItem
-            done={canStart}
-            label="Ready to launch — expect a ~40 minute session"
-          />
-        </ul>
+        </div>
+        {(profiles.roleId != null || profiles.candId != null) && (
+          <ul className="mt-4 space-y-1.5">
+            {profiles.candId != null && (
+              <li className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#3AA99E]">
+                <Check size={13} strokeWidth={3} /> Resume parsed ·{" "}
+                {profiles.candClaims} claims
+              </li>
+            )}
+            {profiles.roleId != null && (
+              <li className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-[#3AA99E]">
+                <Check size={13} strokeWidth={3} /> Role parsed ·{" "}
+                {profiles.roleSkills} required skills
+              </li>
+            )}
+          </ul>
+        )}
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
+
+      <div aria-hidden="true" className="mt-7 border-t border-dashed border-white/[0.2]" />
+
+      <div className="mt-6">
+        <Button
+          variant="primary"
           disabled={!canStart}
           onClick={() => void handleStart()}
-          className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-zinc-950 shadow-sm transition-colors hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full py-3.5 text-sm"
         >
-          <Play size={15} />
-          {status === "starting" ? "Starting…" : "Start interview"}
-        </button>
-        {status === "starting" && <Spinner label="Generating opening question…" />}
-        {status === "uploading" && <Spinner label="Parsing document…" />}
-        {!canStart && status !== "starting" && (
-          <p className="text-xs text-zinc-500">
-            Upload both files to unlock the interview.
+          {status === "starting" ? "Starting…" : "Begin interview →"}
+        </Button>
+        {status === "starting" && (
+          <p className="mt-3">
+            <Spinner label="Generating opening question…" />
+          </p>
+        )}
+        {status === "uploading" && (
+          <p className="mt-3">
+            <Spinner label="Parsing document…" />
+          </p>
+        )}
+        {!canStart && status !== "starting" && status !== "uploading" && (
+          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-[#8FA3A0]">
+            Upload your resume and job description to unlock the interview.
           </p>
         )}
       </div>
-    </Card>
+    </aside>
   );
 }
