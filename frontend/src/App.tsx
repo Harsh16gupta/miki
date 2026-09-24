@@ -7,6 +7,7 @@ import AmbientBackground from "./components/background/AmbientBackground";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
 import { Toast } from "./components/common/Primitives";
+import { useTheme } from "./hooks/useTheme";
 import LandingPage from "./pages/LandingPage";
 import SetupPage from "./pages/SetupPage";
 import InterviewPage from "./pages/InterviewPage";
@@ -17,11 +18,16 @@ import HistoryPage from "./pages/HistoryPage";
 
 function Shell() {
   const { interview } = useInterviewCtx();
+  const { theme, toggle } = useTheme();
   return (
     <div className="relative min-h-svh">
       <AmbientBackground />
       <div className="relative z-10 mx-auto w-full max-w-6xl space-y-4 px-4 py-6 sm:px-6">
-        <Navbar onReset={interview.reset} />
+        <Navbar
+          onReset={interview.reset}
+          theme={theme}
+          onToggleTheme={toggle}
+        />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/setup" element={<SetupPage />} />

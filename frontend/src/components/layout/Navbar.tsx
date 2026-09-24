@@ -3,6 +3,8 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { apiUrl } from "../../lib/config";
 import { useAuth } from "../../app/useAuth";
+import type { Theme } from "../../hooks/useTheme";
+import ThemeToggle from "../common/ThemeToggle";
 
 /* Mono nav mapped to existing routes (SCREEN-SPECS.md: 02-landing). */
 const stages = [
@@ -145,7 +147,15 @@ function UserMenu() {
   );
 }
 
-export default function Navbar({ onReset }: { onReset: () => void }) {
+export default function Navbar({
+  onReset,
+  theme = "dark",
+  onToggleTheme,
+}: {
+  onReset: () => void;
+  theme?: Theme;
+  onToggleTheme?: () => void;
+}) {
   const navigate = useNavigate();
   const handleReset = () => {
     onReset();
@@ -190,6 +200,9 @@ export default function Navbar({ onReset }: { onReset: () => void }) {
           </nav>
           <div className="flex shrink-0 items-center gap-2">
             <HealthPill />
+            {onToggleTheme && (
+              <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            )}
             <AuthAction />
             <button
               type="button"

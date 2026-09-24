@@ -1,0 +1,254 @@
+/* =====================================================================
+   Miki LIGHT theme (testing draft) — SEPARATE from the dark system.
+   ---------------------------------------------------------------------
+   Rules for this file (per owner request: easily modifiable, testing):
+   1. NEVER touch `index.css` or any `.tsx` for theming — every rule here
+      is scoped under `.light`, so dark mode is byte-identical with or
+      without this file loaded.
+   2. THE PALETTE LIVES IN ONE PLACE: the `.light` var block below.
+      Tweak testing colors there; every mapping underneath follows.
+   3. Mappings override Tailwind's dark literal utilities by specificity
+      (`.light .text-[...]` beats `.text-[...]`) and load order
+      (imported AFTER `index.css` in `main.tsx`, unlayered).
+   4. Duplication with dark values is INTENTIONAL for now. A semantic-
+      token refactor (text-ink/bg-canvas/...) replaces this sheet later.
+   ===================================================================== */
+
+/* ---- Wave vars, DARK values (so `index.css` stays untouched) ---- */
+:root {
+  --wave-sage: 131, 221, 218;
+  --wave-teal: 58, 169, 158;
+  --wave-accent: 228, 98, 31;
+}
+
+/* ---- 1. LIGHT PALETTE (edit me) — editorial paper direction ---- */
+.light {
+  color-scheme: light;
+
+  --li-canvas: #faf9f6; /* warm paper page bg */
+  --li-surface: #ffffff; /* panels, cards, ledger */
+  --li-ink: #10302c; /* headlines, body, scores (was sage) */
+  --li-muted: #57716c; /* meta, hints, placeholders */
+  --li-accent: #e4621f; /* primary CTA, mic, shadow (unchanged) */
+  --li-accent-deep: #c2521a; /* small accent text on paper (contrast) */
+  --li-teal: #3aa99e; /* solid fills: checks, meter (unchanged) */
+  --li-teal-deep: #1e7a70; /* teal text/checks/rings on paper (contrast) */
+  --li-danger: #b91c1c; /* errors on paper */
+  --li-line: rgba(16, 48, 44, 0.14); /* hairlines (was white/8%) */
+  --li-line-strong: rgba(16, 48, 44, 0.3); /* chips, number chips */
+
+  --wave-sage: 30, 122, 112;
+  --wave-teal: 30, 122, 112;
+  --wave-accent: 228, 98, 31;
+}
+
+/* ---- 2. BASE + index.css helper overrides ---- */
+.light body {
+  background: var(--li-canvas);
+  color: var(--li-ink);
+}
+
+.light .blueprint-grid {
+  background-image:
+    linear-gradient(rgba(16, 48, 44, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 48, 44, 0.055) 1px, transparent 1px);
+}
+
+.light .stamp-accent {
+  color: var(--li-accent-deep);
+  border-color: var(--li-accent-deep);
+}
+.light .stamp-teal {
+  color: var(--li-teal-deep);
+  border-color: var(--li-teal-deep);
+}
+
+.light .panel-hard {
+  background: var(--li-surface);
+  border-color: var(--li-line-strong);
+  box-shadow: 10px 10px 0 var(--li-accent); /* signature survives */
+}
+
+.light .input-underline {
+  color: var(--li-ink);
+  border-bottom-color: var(--li-line-strong);
+}
+.light .input-underline::placeholder {
+  color: var(--li-muted);
+}
+.light .input-underline:focus {
+  border-bottom-color: var(--li-teal-deep);
+}
+.light .input-label {
+  color: var(--li-muted);
+}
+.light .input-required-dot {
+  color: var(--li-accent-deep);
+}
+
+.light .upload-zone {
+  border-color: color-mix(in srgb, var(--li-ink) 35%, transparent);
+}
+.light .upload-zone-hover {
+  border-color: var(--li-teal-deep);
+  background: color-mix(in srgb, var(--li-teal) 8%, transparent);
+}
+.light .upload-zone-filled {
+  border-color: var(--li-line-strong);
+}
+
+.light .focus-ring:focus-visible {
+  outline-color: color-mix(in srgb, var(--li-teal-deep) 70%, transparent);
+}
+.light .live-dot {
+  box-shadow: 0 0 8px rgba(30, 122, 112, 0.55);
+}
+
+/* ---- 3. TEXT overrides (dark literal -> light role) ---- */
+.light .text-\[\#83DDDA\] {
+  color: var(--li-ink);
+}
+.light .text-\[\#83DDDA\]\/60 {
+  color: color-mix(in srgb, var(--li-ink) 60%, transparent);
+}
+.light .text-\[\#8FA3A0\] {
+  color: var(--li-muted);
+}
+.light .text-\[\#8FA3A0\]\/60 {
+  color: color-mix(in srgb, var(--li-muted) 60%, transparent);
+}
+.light .placeholder\:text-\[\#8FA3A0\]\/75::placeholder {
+  color: color-mix(in srgb, var(--li-muted) 75%, transparent);
+}
+.light .text-\[\#E4621F\] {
+  color: var(--li-accent-deep);
+}
+.light .text-\[\#3AA99E\] {
+  color: var(--li-teal-deep);
+}
+.light .text-\[\#f87171\] {
+  color: var(--li-danger);
+}
+.light .hover\:text-\[\#83DDDA\]:hover {
+  color: var(--li-ink);
+}
+
+/* ---- 4. BACKGROUND overrides ---- */
+.light .bg-\[\#06090A\] {
+  background-color: var(--li-surface);
+}
+.light .bg-\[\#06090A\]\/90 {
+  background-color: color-mix(in srgb, var(--li-surface) 90%, transparent);
+}
+.light .bg-\[\#0E1223\] {
+  background-color: var(--li-surface);
+}
+.light .bg-\[\#3AA99E\] {
+  background-color: var(--li-teal);
+}
+.light .bg-\[\#3AA99E\]\/10 {
+  background-color: color-mix(in srgb, var(--li-teal) 12%, transparent);
+}
+.light .bg-\[\#83DDDA\] {
+  background-color: var(--li-teal-deep);
+}
+.light .bg-\[\#83DDDA\]\/40 {
+  background-color: color-mix(in srgb, var(--li-teal-deep) 45%, transparent);
+}
+.light .bg-\[\#83DDDA\]\/70 {
+  background-color: color-mix(in srgb, var(--li-teal-deep) 70%, transparent);
+}
+.light .bg-\[\#8FA3A0\] {
+  background-color: var(--li-muted);
+}
+.light .bg-\[\#E4621F\] {
+  background-color: var(--li-accent);
+}
+.light .bg-\[\#E4621F\]\/10 {
+  background-color: color-mix(in srgb, var(--li-accent) 10%, transparent);
+}
+.light .bg-\[\#f87171\] {
+  background-color: var(--li-danger);
+}
+.light .hover\:bg-\[\#83DDDA\]\/10:hover {
+  background-color: color-mix(in srgb, var(--li-teal) 12%, transparent);
+}
+.light .bg-black\/30 {
+  background-color: color-mix(in srgb, var(--li-ink) 6%, transparent);
+}
+.light .bg-white\/10 {
+  background-color: color-mix(in srgb, var(--li-ink) 10%, transparent);
+}
+.light .bg-white\/30 {
+  background-color: color-mix(in srgb, var(--li-ink) 30%, transparent);
+}
+.light .bg-white\/\[0\.04\] {
+  background-color: color-mix(in srgb, var(--li-ink) 4%, transparent);
+}
+.light .bg-white\/\[0\.06\] {
+  background-color: color-mix(in srgb, var(--li-ink) 6%, transparent);
+}
+.light .bg-white\/\[0\.08\] {
+  background-color: color-mix(in srgb, var(--li-ink) 8%, transparent);
+}
+.light .bg-white\/\[0\.14\] {
+  background-color: color-mix(in srgb, var(--li-ink) 14%, transparent);
+}
+.light .hover\:bg-white\/\[0\.05\]:hover {
+  background-color: color-mix(in srgb, var(--li-ink) 6%, transparent);
+}
+.light .bg-red-500\/\[0\.08\] {
+  background-color: color-mix(in srgb, var(--li-danger) 8%, transparent);
+}
+.light .hover\:bg-red-500\/\[0\.08\]:hover {
+  background-color: color-mix(in srgb, var(--li-danger) 8%, transparent);
+}
+.light .hover\:bg-red-500\/\[0\.14\]:hover {
+  background-color: color-mix(in srgb, var(--li-danger) 14%, transparent);
+}
+/* text-black on accent buttons: unchanged in both modes (no rule). */
+
+/* ---- 5. BORDER / DIVIDE / MISC overrides ---- */
+.light .border-white\/\[0\.06\],
+.light .border-white\/\[0\.08\] {
+  border-color: var(--li-line);
+}
+.light .border-white\/\[0\.14\],
+.light .border-white\/\[0\.2\],
+.light .border-white\/10 {
+  border-color: var(--li-line-strong);
+}
+.light .divide-white\/\[0\.06\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--li-line);
+}
+.light .border-\[\#83DDDA\],
+.light .hover\:border-\[\#83DDDA\]:hover {
+  border-color: var(--li-teal-deep);
+}
+.light .border-\[\#83DDDA\]\/60 {
+  border-color: var(--li-teal-deep);
+}
+.light .border-\[\#3AA99E\] {
+  border-color: var(--li-teal-deep);
+}
+.light .border-\[\#3AA99E\]\/40 {
+  border-color: color-mix(in srgb, var(--li-teal-deep) 45%, transparent);
+}
+.light .border-\[\#E4621F\] {
+  border-color: var(--li-accent);
+}
+.light .border-\[\#E4621F\]\/40 {
+  border-color: color-mix(in srgb, var(--li-accent) 45%, transparent);
+}
+.light .border-red-500\/30 {
+  border-color: color-mix(in srgb, var(--li-danger) 35%, transparent);
+}
+.light .border-red-500\/60 {
+  border-color: color-mix(in srgb, var(--li-danger) 65%, transparent);
+}
+.light .focus-within\:outline-\[\#83DDDA\]\/70:focus-within {
+  outline-color: var(--li-teal-deep);
+}
+.light .accent-\[\#3AA99E\] {
+  accent-color: var(--li-teal-deep);
+}
