@@ -1,7 +1,15 @@
 import { useCallback, useRef, useState } from "react";
-import { apiPostJson, apiUpload, ApiError, apiFetch } from "../lib/api";
+import {
+  apiPostJson,
+  apiUpload,
+  ApiError,
+  apiFetch,
+  authHeaders,
+} from "../lib/api";
+import { apiUrl } from "../lib/config";
 import type {
   AnswerResponse,
+  AnswerStreamEvent,
   CandidateProfileResponse,
   ChatMessage,
   EvaluationReport,
@@ -161,21 +169,116 @@ export function useInterview() {
   }, [profiles.candId, profiles.roleId]);
 
   const loadReport = useCallback(async (sid: number) => {
+    // Evaluation runs lazily server-side; poll until the report lands.
+    // Retry transient states (eval still running, overloaded provider),
+    // fail fast on client errors (bad session, forbidden, malformed eval).
+    const RETRYABLE = new Set([409, 429, 502, 503, 504]);
     setStatus("scoring");
-    try {
-      const rep = await apiFetch<EvaluationReport>(`/session/${sid}/report`);
-      setReport(rep);
-      setStage("report");
-      setStatus("done");
-    } catch (e) {
-      setStatus("live");
-      setError(
-        e instanceof ApiError
-          ? `Report failed: ${e.detail}`
-          : "Report failed to load.",
-      );
+    for (let attempt = 1; ; attempt++) {
+      try {
+        const rep = await apiFetch<EvaluationReport>(`/session/${sid}/report`);
+        setReport(rep);
+        setStage("report");
+        setStatus("done");
+        return;
+      } catch (e) {
+        const retryable =
+          !(e instanceof ApiError) || RETRYABLE.has(e.status);
+        if (!retryable || attempt >= 10) {
+          setStatus("live");
+          setError(
+            e instanceof ApiError
+              ? `Report failed: ${e.detail}`
+              : "Report failed to load.",
+          );
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 4000));
+      }
     }
   }, []);
+
+  const answerNonStream = useCallback(
+    async (clean: string, sid: number) => {
+      const body = await apiPostJson<AnswerResponse>(`/session/${sid}/answer`, {
+        text: clean,
+      });
+      setInterviewState(body.state);
+      setClaimsFound((c) => c + (body.claims_found ?? 0));
+      setMessages((m) => [...m, { id: msgSeq++, who: "miki", text: body.question }]);
+      if (body.finished) {
+        await loadReport(sid);
+      } else {
+        setStatus("live");
+      }
+    },
+    [loadReport],
+  );
+
+  const answerStream = useCallback(
+    async (
+      clean: string,
+      sid: number,
+      mikiId: number,
+    ): Promise<"done" | "empty"> => {
+      // Returns "done" once ANY server event arrived (turn is committed
+      // server-side — no non-stream fallback after this point), "empty"
+      // when the stream died before the first event (safe to fall back).
+      const res = await fetch(apiUrl(`/session/${sid}/answer/stream`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ text: clean }),
+      });
+      if (!res.ok || !res.body) return "empty";
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = "";
+      let acc = "";
+      let seen: AnswerStreamEvent | null = null;
+      const patchMiki = () =>
+        setMessages((m) => m.map((x) => (x.id === mikiId ? { ...x, text: acc } : x)));
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const frames = buf.split("\n\n");
+        buf = frames.pop() ?? "";
+        for (const frame of frames) {
+          for (const line of frame.split("\n")) {
+            if (!line.startsWith("data:")) continue;
+            let ev: AnswerStreamEvent;
+            try {
+              ev = JSON.parse(line.slice(5)) as AnswerStreamEvent;
+            } catch {
+              continue;
+            }
+            if (ev.type === "error") {
+              throw new ApiError(ev.status, ev.detail);
+            }
+            seen = ev;
+            if (ev.type === "delta") {
+              acc += ev.delta;
+              patchMiki();
+            } else if (ev.type === "done") {
+              setInterviewState(ev.state);
+              setClaimsFound((c) => c + (ev.claims_found ?? 0));
+              if (ev.finished) {
+                await loadReport(sid);
+              } else {
+                setStatus("live");
+              }
+            }
+          }
+        }
+      }
+      if (!seen) return "empty";
+      if (seen.type !== "done") {
+        throw new Error("Stream ended before the question completed.");
+      }
+      return "done";
+    },
+    [loadReport],
+  );
 
   const answer = useCallback(
     async (text: string, opts?: { fromVoice?: boolean; transcript?: string }) => {
@@ -194,18 +297,28 @@ export function useInterview() {
       ]);
       setStatus("thinking");
       setError(null);
+      const sid = sessionId;
       try {
-        const body = await apiPostJson<AnswerResponse>(
-          `/session/${sessionId}/answer`,
-          { text: clean },
-        );
-        setInterviewState(body.state);
-        setClaimsFound((c) => c + (body.claims_found ?? 0));
-        setMessages((m) => [...m, { id: msgSeq++, who: "miki", text: body.question }]);
-        if (body.finished) {
-          await loadReport(sessionId);
-        } else {
-          setStatus("live");
+        // Streaming placeholder: filled token-by-token; dropped if the
+        // stream yields nothing (clean non-stream fallback, no double turn).
+        const mikiId = msgSeq++;
+        setMessages((m) => [...m, { id: mikiId, who: "miki", text: "…" }]);
+        let outcome: "done" | "empty";
+        try {
+          outcome = await answerStream(clean, sid, mikiId);
+        } catch (e) {
+          // Stream committed (turn persisted) but broke mid-flight: keep
+          // whatever streamed and surface the error instead of duplicating.
+          setMessages((m) =>
+            m.some((x) => x.id === mikiId && x.text !== "" && x.text !== "…")
+              ? m
+              : m.filter((x) => x.id !== mikiId),
+          );
+          throw e;
+        }
+        if (outcome === "empty") {
+          setMessages((m) => m.filter((x) => x.id !== mikiId));
+          await answerNonStream(clean, sid);
         }
       } catch (e) {
         setStatus("live");
@@ -218,7 +331,7 @@ export function useInterview() {
         busyRef.current = false;
       }
     },
-    [sessionId, status, loadReport],
+    [sessionId, status, answerStream, answerNonStream],
   );
 
   const refreshDetail = useCallback(async () => {

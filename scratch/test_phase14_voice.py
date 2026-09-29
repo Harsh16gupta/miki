@@ -36,7 +36,9 @@ CANNED_ANSWER = (
 
 
 async def fake_stt(audio: bytes) -> str:
-    assert audio == b"fake-audio-frames"
+    # One-shot transport: the server only finalizes buffers >= 1000 bytes,
+    # so tests send a padded payload (content is irrelevant to fake STT).
+    assert len(audio) >= 1000, len(audio)
     return CANNED_ANSWER
 
 
@@ -102,7 +104,7 @@ def main() -> None:
                 db,
                 session,
                 get_normal_policy(),
-                b"fake-audio-frames",
+                b"fake-audio-frames" * 200,
                 fake_stt,
                 fake_tts,
             )
@@ -127,16 +129,36 @@ def main() -> None:
                 ready = json.loads(ws.receive_text())
                 assert ready["type"] == "ready", ready
                 assert ready["silence_threshold_seconds"] >= 1
-                ws.send_bytes(b"fake-audio-frames")
+                ws.send_text(
+                    json.dumps({"type": "audio_format", "mime": "audio/webm"})
+                )
+                ws.send_bytes(b"fake-audio-frames" * 200)
                 ws.send_text(json.dumps({"type": "end_of_turn"}))
                 answer = json.loads(ws.receive_text())
                 assert answer["type"] == "answer", answer
                 assert answer["transcript"] == CANNED_ANSWER
                 question = json.loads(ws.receive_text())
                 assert question["type"] == "question" and question["text"].strip()
+                audios = 0
                 audio = json.loads(ws.receive_text())
                 assert audio["type"] == "audio" and audio["data_b64"]
+                audios += 1
                 print("WS round trip ok (answer+question+audio frames)")
+                # Empty end_of_turn gets a friendly error, not silence/crash.
+                # Drain any further sentence-chunk audio frames first.
+                ws.send_text(json.dumps({"type": "end_of_turn"}))
+                for _ in range(6):
+                    frame = json.loads(ws.receive_text())
+                    if frame["type"] == "audio":
+                        audios += 1
+                        continue
+                    assert frame["type"] == "error" and "Didn't catch" in (
+                        frame.get("detail") or ""
+                    ), frame
+                    break
+                else:
+                    raise AssertionError("never got the empty-buffer error")
+                print(f"WS empty-buffer friendly error ok ({audios} audio chunks)")
         finally:
             voice_router.get_stt = get_stt
             voice_router.get_tts = get_tts
@@ -158,7 +180,10 @@ def main() -> None:
 
 
 class FakeSTT:
-    async def transcribe(self, audio: bytes) -> str:
+    async def transcribe(
+        self, audio: bytes, content_type: str = "audio/webm"
+    ) -> str:
+        assert content_type.startswith("audio/"), content_type
         return await fake_stt(audio)
 
 

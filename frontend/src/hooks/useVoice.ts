@@ -25,6 +25,14 @@ export function useVoice(interview: InterviewApi) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Sentence-chunked TTS arrives as several `audio` frames; queue them so a
+  // new chunk never cuts off the one still playing.
+  const audioQueueRef = useRef<Array<{ dataB64: string; fallbackText: string }>>([]);
+  // One-shot audio transport: chunks accumulate here during recording and go
+  // out as a SINGLE Blob on Stop (valid container) with its MIME signaled.
+  // Streaming raw timeslice chunks produced corrupt files server-side.
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioMimeRef = useRef<string>("audio/webm");
   const analyserRef = useRef<AnalyserHandle | null>(null);
   const lastQuestionRef = useRef("");
   const sessionRef = useRef<number | null>(null);
@@ -49,6 +57,13 @@ export function useVoice(interview: InterviewApi) {
   }, []);
 
   const cleanup = useCallback((closeSocket: boolean) => {
+    audioQueueRef.current = [];
+    try {
+      audioRef.current?.pause();
+    } catch {
+      // ignore pause races
+    }
+    audioRef.current = null;
     detachAnalyser();
     const rec = recorderRef.current;
     if (rec && rec.state !== "inactive") {
@@ -74,7 +89,22 @@ export function useVoice(interview: InterviewApi) {
 
   useEffect(() => () => cleanup(true), [cleanup]);
 
-  const playAudioB64 = useCallback((dataB64: string, fallbackText: string) => {
+  // Named function expression: `play` recurses for queue draining without
+  // capturing the in-progress `playAudioB64` binding (oxlint-clean).
+  const playAudioB64 = useCallback(function play(
+    dataB64: string,
+    fallbackText: string,
+  ): void {
+    // If something is already playing, queue behind it (chunked TTS).
+    if (audioRef.current && !audioRef.current.paused && !audioRef.current.ended) {
+      audioQueueRef.current.push({ dataB64, fallbackText });
+      return;
+    }
+    const playNext = (): void => {
+      const next = audioQueueRef.current.shift();
+      if (!next) return;
+      play(next.dataB64, next.fallbackText);
+    };
     try {
       detachAnalyser();
       setSpeaking(false);
@@ -92,15 +122,24 @@ export function useVoice(interview: InterviewApi) {
       };
       audio.onended = () => {
         stopSpeaking();
-        setVoiceStatus("Ready — click Speak to answer");
+        if (audioQueueRef.current.length > 0) {
+          playNext();
+        } else {
+          setVoiceStatus("Ready — click Speak to answer");
+        }
       };
-      audio.onerror = stopSpeaking;
+      audio.onerror = () => {
+        stopSpeaking();
+        playNext();
+      };
       audio.play().catch(() => {
         stopSpeaking();
         speakBrowserFallback(fallbackText);
+        playNext();
       });
     } catch {
       speakBrowserFallback(fallbackText);
+      playNext();
     }
   }, [detachAnalyser]);
 
@@ -204,36 +243,64 @@ export function useVoice(interview: InterviewApi) {
       return;
     }
     recorderRef.current = recorder;
+    audioChunksRef.current = [];
+    audioMimeRef.current = recorder.mimeType || "audio/webm";
     recorder.ondataavailable = (e: BlobEvent) => {
-      if (
-        e.data.size > 0 &&
-        wsRef.current &&
-        wsRef.current.readyState === WebSocket.OPEN
-      ) {
-        wsRef.current.send(e.data);
-      }
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
     };
     recorder.start(250);
     setRecording(true);
     setVoiceStatus("Recording… speak, then click Stop (or go silent)");
   }, [detachAnalyser, ensureSocket, interview, recording]);
 
+  // Minimum speech payload: anything smaller is a mic blip, not an answer.
+  // Rejected locally with a friendly toast — no server round trip.
+  const MIN_SPEECH_BYTES = 2000;
+
   const stop = useCallback(
     (sendEnd = true) => {
       const ws = wsRef.current;
-      cleanup(false);
-      if (ws && ws.readyState === WebSocket.OPEN && sendEnd) {
+      const sendBlob = () => {
+        const chunks = audioChunksRef.current;
+        audioChunksRef.current = [];
+        const open = ws && ws.readyState === WebSocket.OPEN;
+        if (!sendEnd || !open) {
+          cleanup(false);
+          setVoiceStatus("Ready — click Speak to answer");
+          return;
+        }
+        const total = chunks.reduce((n, c) => n + c.size, 0);
+        if (total < MIN_SPEECH_BYTES) {
+          cleanup(false);
+          interview.toast("Didn't catch that — tap Speak and try again.");
+          setVoiceStatus("Ready — click Speak to answer");
+          return;
+        }
         try {
+          const mime = audioMimeRef.current;
+          ws.send(JSON.stringify({ type: "audio_format", mime }));
+          ws.send(new Blob(chunks, { type: mime }));
           ws.send(JSON.stringify({ type: "end_of_turn" }));
           setVoiceStatus("Sending…");
         } catch {
           setVoiceStatus("Send failed");
         }
+        cleanup(false);
+      };
+      const rec = recorderRef.current;
+      if (rec && rec.state !== "inactive") {
+        // Final ondataavailable fires before onstop per spec — send after it.
+        rec.onstop = () => sendBlob();
+        try {
+          rec.stop();
+        } catch {
+          sendBlob();
+        }
       } else {
-        setVoiceStatus("Ready — click Speak to answer");
+        sendBlob();
       }
     },
-    [cleanup],
+    [cleanup, interview],
   );
 
   const toggle = useCallback(() => {

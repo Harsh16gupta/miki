@@ -14,7 +14,7 @@ from typing import Any
 from sqlalchemy.orm import Session as DbSession
 
 from app.interview.states import InterviewState
-from app.llm.router import call_llm
+from app.llm.router import call_llm, call_llm_stream
 from app.models import Claim, Turn
 from app.models.enums import Speaker
 from app.policy.loader import InterviewPolicy
@@ -35,6 +35,12 @@ SYSTEM_PROMPT = (
 )
 
 
+def _short(text: Any, limit: int) -> str:
+    """Truncate one value for prompt slimming (latency: smaller prefill)."""
+    s = str(text or "")
+    return s if len(s) <= limit else s[:limit] + "…"
+
+
 def _context_block(
     state: InterviewState,
     policy: InterviewPolicy,
@@ -43,29 +49,42 @@ def _context_block(
     target_claim: Claim | None,
     recent_turns: list[str],
 ) -> str:
+    skills = list(candidate_json.get("skills", []) or [])[:12]
+    projects = [
+        _short(
+            p.get("name", "") + ": " + p.get("description", "")
+            if isinstance(p, dict)
+            else p,
+            120,
+        )
+        for p in list(candidate_json.get("projects", []) or [])[:8]
+    ]
+    claims = [
+        _short(c, 120)
+        for c in list(candidate_json.get("claims", []) or [])[:10]
+    ]
     lines = [
         f"State: {state.value}",
         f"Target duration: {policy.target_duration_minutes}min. "
         f"Escalate: {policy.difficulty_escalation_rule} "
         f"De-escalate: {policy.difficulty_deescalation_rule}",
-        "Candidate profile: "
-        f"skills={candidate_json.get('skills', [])} "
-        f"projects={candidate_json.get('projects', [])} "
-        f"claims={candidate_json.get('claims', [])}",
+        f"Candidate profile: skills={skills} projects={projects} claims={claims}",
         "Role profile: "
-        f"required={role_json.get('required_skills', [])} "
-        f"responsibilities={role_json.get('responsibilities', [])}",
+        f"required={list(role_json.get('required_skills', []) or [])[:10]} "
+        f"responsibilities="
+        f"{[_short(r, 100) for r in list(role_json.get('responsibilities', []) or [])[:6]]}",
     ]
     if target_claim is not None:
         lines.append(
             f"Target claim (id={target_claim.id}, "
-            f"category={target_claim.category}): {target_claim.claim_text}"
+            f"category={target_claim.category}): "
+            f"{_short(target_claim.claim_text, 300)}"
         )
     else:
         lines.append("Target claim: (none — ask broadly)")
     if recent_turns:
-        lines.append("Recent conversation:")
-        lines.extend(f"- {t}" for t in recent_turns)
+        lines.append("Recent conversation (latest last):")
+        lines.extend(f"- {_short(t, 500)}" for t in recent_turns[-4:])
     else:
         lines.append("Recent conversation: (none yet)")
     return "\n".join(lines)
@@ -94,6 +113,27 @@ def generate_question(
     if not question:
         raise ValueError("Question generation returned empty text")
     return question, result["model_id"]
+
+
+def generate_question_stream(
+    state: InterviewState,
+    policy: InterviewPolicy,
+    candidate_json: dict[str, Any],
+    role_json: dict[str, Any],
+    target_claim: Claim | None = None,
+    recent_turns: list[str] | None = None,
+):
+    """Yield question text deltas as they stream in (same prompt as non-stream)."""
+    user_content = _context_block(
+        state, policy, candidate_json, role_json, target_claim, recent_turns or []
+    )
+    yield from call_llm_stream(
+        task_type="question_generation",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_content},
+        ],
+    )
 
 
 def persist_miki_turn(db: DbSession, *, session_id: int, text: str) -> Turn:

@@ -17,14 +17,14 @@ from typing import Any
 
 from sqlalchemy.orm import Session as DbSession
 
-from app.extraction import extract_answer_claims, persist_answer_claims
+from app.extraction import persist_answer_claims
 from app.interview.machine import StateMachine, TransitionContext
 from app.interview.proposal import (
     apply_proposal,
     context_for_session,
-    propose_state,
     recent_claims_for_session,
 )
+from app.interview.turn_analysis import analyze_turn_robust
 from app.interview.questions import generate_question, persist_miki_turn
 from app.interview.states import InterviewState
 from app.models import Claim, Session, StateTransition, Turn
@@ -206,30 +206,40 @@ def answer_session(
     if session.status != SessionStatus.IN_PROGRESS:
         raise ValueError(f"Session {session.id} is {session.status.value}, closed")
 
+    import time as _time
+
     machine = load_machine(db, session.id, policy)
     turn = append_candidate_turn(db, session_id=session.id, text=answer_text)
     db.refresh(session)
 
+    # ONE merged call: claim extraction + transition proposal (was 2 calls).
     resume_claims = (session.candidate_profile.extracted_json or {}).get("claims", [])
-    parsed = extract_answer_claims(
+    ctx = ctx_override or full_context(db, session, policy)
+    recent = recent_claims_for_session(db, session.id)
+    t0 = _time.monotonic()
+    history = [t if len(t) <= 600 else t[:600] + "…" for t in recent_turn_texts(db, session.id)]
+    parsed, model_id, _fallback = analyze_turn_robust(
         turn.text,
-        recent_turns=recent_turn_texts(db, session.id),
+        machine.current_state,
+        policy,
+        recent_claims=recent,
+        coverage=ctx,
+        recent_turns=history,
         resume_claims=resume_claims if isinstance(resume_claims, list) else [],
     )
+    analysis_ms = int((_time.monotonic() - t0) * 1000)
     claims = persist_answer_claims(
         db, session_id=session.id, turn_id=turn.id, parsed=parsed
     )
     db.refresh(session)
 
-    ctx = ctx_override or full_context(db, session, policy)
-    recent = recent_claims_for_session(db, session.id)
-    proposal, model_id = propose_state(machine.current_state, policy, recent, ctx)
-    applied = apply_proposal(machine, proposal, model_id, ctx)
+    applied = apply_proposal(machine, parsed, model_id, ctx)
 
     if machine.current_state == InterviewState.CLOSING and applied:
         session.status = SessionStatus.COMPLETED
         session.ended_at = datetime.now(UTC)
         db.commit()
+        t1 = _time.monotonic()
         closer, _ = generate_question(
             InterviewState.CLOSING,
             policy,
@@ -238,23 +248,24 @@ def answer_session(
             target_claim=None,
             recent_turns=recent_turn_texts(db, session.id),
         )
+        question_ms = int((_time.monotonic() - t1) * 1000)
         closing_turn = persist_miki_turn(db, session_id=session.id, text=closer)
         logger.info("session %d closed (%d turns)", session.id, closing_turn.turn_index)
-        try:
-            from app.evaluation import evaluate_if_unscored, get_normal_rubric
-
-            evaluate_if_unscored(db, session, get_normal_rubric())
-        except Exception:
-            logger.exception("session %d: eval failed, closing anyway", session.id)
+        # NOTE (speed): evaluation runs lazily on GET /report
+        # (evaluate_if_unscored), not here — the closing answer must return
+        # fast instead of bearing eval + report calls.
         return {
             "question": closer,
             "state": InterviewState.CLOSING.value,
             "finished": True,
             "transition_applied": True,
             "claims_found": len(claims),
+            "analysis_ms": analysis_ms,
+            "question_ms": question_ms,
         }
 
-    target = resolve_target_claim(db, session.id, proposal)
+    target = resolve_target_claim(db, session.id, parsed)
+    t1 = _time.monotonic()
     question, _ = generate_question(
         machine.current_state,
         policy,
@@ -263,6 +274,7 @@ def answer_session(
         target_claim=target,
         recent_turns=recent_turn_texts(db, session.id),
     )
+    question_ms = int((_time.monotonic() - t1) * 1000)
     persist_miki_turn(db, session_id=session.id, text=question)
     return {
         "question": question,
@@ -270,4 +282,6 @@ def answer_session(
         "finished": False,
         "transition_applied": applied,
         "claims_found": len(claims),
+        "analysis_ms": analysis_ms,
+        "question_ms": question_ms,
     }

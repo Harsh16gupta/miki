@@ -73,7 +73,31 @@ export interface AnswerResponse {
   finished: boolean;
   transition_applied: boolean;
   claims_found: number;
+  analysis_ms?: number | null;
+  question_ms?: number | null;
 }
+
+export type AnswerStreamEvent =
+  | {
+      type: "started";
+      state: string;
+      finished: boolean;
+      transition_applied: boolean;
+      claims_found: number;
+      analysis_ms: number;
+    }
+  | { type: "delta"; delta: string }
+  | {
+      type: "done";
+      question: string;
+      state: string;
+      finished: boolean;
+      transition_applied: boolean;
+      claims_found: number;
+      analysis_ms: number;
+      question_ms: number;
+    }
+  | { type: "error"; status: number; detail: string };
 
 export interface SessionDetail {
   session_id: number;

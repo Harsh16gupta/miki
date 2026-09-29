@@ -23,6 +23,7 @@ from app.interview.proposal import (
 )
 from app.interview.questions import generate_question, persist_miki_turn
 from app.interview.states import LEGAL_TRANSITIONS, InterviewState
+from app.interview.turn_analysis import analyze_turn, analyze_turn_robust
 
 __all__ = [
     "ENGINE_VERSION",
@@ -30,6 +31,8 @@ __all__ = [
     "InterviewState",
     "StateMachine",
     "TransitionContext",
+    "analyze_turn",
+    "analyze_turn_robust",
     "answer_session",
     "append_candidate_turn",
     "apply_proposal",

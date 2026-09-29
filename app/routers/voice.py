@@ -2,7 +2,9 @@
 
 Protocol (JSON frames are text, audio frames are binary):
 - server -> {"type": "ready", "silence_threshold_seconds": N, ...}
-- client -> binary audio frames while speaking
+- client -> {"type": "audio_format", "mime": "audio/webm"} once per turn,
+  then ONE binary frame with the complete recorded Blob (one-shot transport;
+  the server forwards the MIME to STT as Content-Type)
 - client -> {"type": "end_of_turn"} to finalize now (browser VAD), or just
   stop sending: the server finalizes after silence_threshold_seconds
   with no frames (timing heuristic).
@@ -29,7 +31,7 @@ from app.database import SessionLocal
 from app.models import Session, User
 from app.models.enums import SessionStatus
 from app.policy import get_normal_policy
-from app.voice import decide_turn_end, get_stt, get_tts, process_voice_turn
+from app.voice import decide_turn_end, get_stt, get_tts
 from app.voice.turns import MAX_BUFFER_BYTES
 
 logger = logging.getLogger(__name__)
@@ -56,38 +58,87 @@ def _user_from_ws_token(db: DbSession, token: str | None) -> User | None:
     return user
 
 
+def _friendly_voice_error(e: Exception) -> str:
+    """Map internal failures to speakable, non-leaky client messages."""
+    msg = str(e)
+    if "STT failed" in msg or "no speech" in msg or "Didn't catch" in msg:
+        return "Didn't catch that clearly — tap Speak and try again."
+    if "empty content" in msg or "Malformed LLM" in msg or "Invalid JSON" in msg:
+        return "Miki's train of thought derailed — tap Speak and say that again."
+    if "TTS" in msg or "no audio" in msg:
+        return "Miki couldn't speak that reply — tap Speak to continue by voice."
+    return msg[:300]
+
+
 async def _finalize(
-    ws: WebSocket, db: DbSession, session: Session, audio: bytes
+    ws: WebSocket,
+    db: DbSession,
+    session: Session,
+    audio: bytes,
+    content_type: str = "audio/webm",
+    _retried: bool = False,
 ) -> bool:
-    """Transcribe + engine + TTS + stream back. Returns finished flag."""
+    """Transcribe + engine + TTS + stream back. Returns finished flag.
+
+    The engine is synchronous (blocking LLM HTTP); it runs in a worker
+    thread so the event loop stays responsive. Audio goes out sentence by
+    sentence so the client starts playing before synthesis finishes.
+    One silent retry covers transient LLM glitches (the transcript is
+    already in hand — no re-recording needed).
+    """
     policy = get_normal_policy()
     try:
         stt, tts = get_stt(), get_tts()
-        out = await process_voice_turn(
-            db,
-            session,
-            policy,
-            bytes(audio),
-            stt.transcribe,
-            tts.synthesize,
+        # Parallelize: kick off STT now; the blocking engine call runs in a
+        # thread once the transcript lands.
+        try:
+            transcript = (await stt.transcribe(bytes(audio), content_type)).strip()
+        except RuntimeError as e:
+            # Raw provider bodies (e.g. Deepgram 400s) never reach the client.
+            raise ValueError(f"STT failed: {e}") from e
+        if not transcript:
+            raise ValueError("STT returned no speech: try again")
+        from app.interview import answer_session as _answer
+
+        try:
+            out = await asyncio.to_thread(
+                _answer, db, session, policy, transcript
+            )
+        except ValueError as e:
+            if not _retried and (
+                "empty content" in str(e)
+                or "Malformed LLM" in str(e)
+                or "Invalid JSON" in str(e)
+            ):
+                logger.info("voice turn: transient LLM failure, retrying once")
+                await asyncio.sleep(2)
+                return await _finalize(
+                    ws, db, session, audio, content_type, _retried=True
+                )
+            raise
+        await _send_json(ws, {"type": "answer", "transcript": transcript})
+        await _send_json(
+            ws,
+            {"type": "question", "text": out["question"], "finished": out["finished"]},
         )
+        from app.voice.turns import synthesize_chunks
+
+        chunks = await synthesize_chunks(tts.synthesize, out["question"])
+        if not chunks:
+            raise ValueError("TTS returned no audio: try again")
+        for chunk in chunks:
+            await _send_json(
+                ws,
+                {
+                    "type": "audio",
+                    "format": "mp3",
+                    "data_b64": base64.b64encode(chunk).decode(),
+                },
+            )
     except Exception as e:
         logger.warning("voice turn failed: %s", e)
-        await _send_json(ws, {"type": "error", "detail": str(e)[:300]})
+        await _send_json(ws, {"type": "error", "detail": _friendly_voice_error(e)})
         return False
-    await _send_json(ws, {"type": "answer", "transcript": out["transcript"]})
-    await _send_json(
-        ws,
-        {"type": "question", "text": out["question"], "finished": out["finished"]},
-    )
-    await _send_json(
-        ws,
-        {
-            "type": "audio",
-            "format": "mp3",
-            "data_b64": base64.b64encode(out["audio"]).decode(),
-        },
-    )
     if out["finished"]:
         await _send_json(ws, {"type": "done"})
     return out["finished"]
@@ -128,6 +179,7 @@ async def voice_session(
             },
         )
         buffer = bytearray()
+        audio_mime = "audio/webm"
         last_frame_at = time.monotonic()
         while True:
             if session.status != SessionStatus.IN_PROGRESS:
@@ -141,7 +193,7 @@ async def voice_session(
                     and len(buffer) >= 1000
                     and decide_turn_end(last_frame_at, time.monotonic(), threshold)
                 ):
-                    finished = await _finalize(ws, db, session, buffer)
+                    finished = await _finalize(ws, db, session, buffer, audio_mime)
                     buffer = bytearray()
                     db.refresh(session)
                     if finished:
@@ -166,8 +218,23 @@ async def voice_session(
                     control = json.loads(message["text"])
                 except ValueError:
                     continue
-                if control.get("type") == "end_of_turn" and buffer:
-                    finished = await _finalize(ws, db, session, buffer)
+                if control.get("type") == "audio_format":
+                    mime = str(control.get("mime", "") or "")
+                    if mime.startswith("audio/"):
+                        audio_mime = mime.split(";")[0].strip() or audio_mime
+                    continue
+                if control.get("type") == "end_of_turn":
+                    if not buffer or len(buffer) < 1000:
+                        buffer = bytearray()
+                        await _send_json(
+                            ws,
+                            {
+                                "type": "error",
+                                "detail": "Didn't catch that — tap Speak and try again.",
+                            },
+                        )
+                        continue
+                    finished = await _finalize(ws, db, session, buffer, audio_mime)
                     buffer = bytearray()
                     db.refresh(session)
                     if finished:

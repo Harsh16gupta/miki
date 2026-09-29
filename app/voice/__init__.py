@@ -8,7 +8,12 @@ from app.voice.providers import (
     get_stt,
     get_tts,
 )
-from app.voice.turns import decide_turn_end, process_voice_turn
+from app.voice.turns import (
+    decide_turn_end,
+    process_voice_turn,
+    split_sentences,
+    synthesize_chunks,
+)
 
 __all__ = [
     "DeepgramSTT",
@@ -19,4 +24,6 @@ __all__ = [
     "get_stt",
     "get_tts",
     "process_voice_turn",
+    "split_sentences",
+    "synthesize_chunks",
 ]

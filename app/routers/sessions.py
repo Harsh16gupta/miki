@@ -2,17 +2,32 @@
 
 from __future__ import annotations
 
+import json
+import time
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session as DbSession
 
 from app.auth.dependencies import get_current_user, get_optional_user
 from app.database import SessionLocal
 from app.evaluation import build_report, evaluate_if_unscored, get_normal_rubric
-from app.interview import InterviewState, answer_session, load_machine, start_session
+from app.extraction import persist_answer_claims
+from app.interview import (
+    InterviewState,
+    answer_session,
+    apply_proposal,
+    full_context,
+    load_machine,
+    recent_claims_for_session,
+    recent_turn_texts,
+    resolve_target_claim,
+    start_session,
+)
+from app.interview.questions import generate_question_stream, persist_miki_turn
 from app.models import CandidateProfile, Evaluation, RoleProfile, Session, User
 from app.models.enums import SessionStatus
 from app.policy import get_normal_policy
@@ -59,6 +74,8 @@ class AnswerResponse(BaseModel):
     finished: bool
     transition_applied: bool
     claims_found: int
+    analysis_ms: int | None = None
+    question_ms: int | None = None
 
 
 class SessionDetail(BaseModel):
@@ -203,6 +220,141 @@ def answer(
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"LLM step failed: {e}") from e
     return AnswerResponse(**result)
+
+
+@router.post("/session/{session_id}/answer/stream")
+def answer_stream(
+    payload: AnswerRequest,
+    session_id: int,
+    db: Db,
+    policy: Policy,
+    user: OptionalUser,
+) -> StreamingResponse:
+    """Stream the next question token-by-token (SSE).
+
+    Same engine as ``/answer`` (merged analysis -> validate -> question),
+    but the question streams as ``data: {"delta": ...}`` events so the UI
+    renders words instead of waiting. Event flow:
+    ``started`` (state/claims/timings) -> ``delta``* -> ``done`` (full text
+    already persisted as the miki turn). On failure mid-stream the client
+    falls back to ``/answer``; use that endpoint if SSE is unavailable.
+    """
+    session = _get_session(db, session_id, user)
+    if session.status != SessionStatus.IN_PROGRESS:
+        raise HTTPException(
+            status_code=409, detail=f"Session is {session.status.value}"
+        )
+    if not (payload.text or "").strip():
+        raise HTTPException(status_code=400, detail="Answer text must be non-empty")
+
+    def _events():
+        from app.interview.loop import append_candidate_turn
+
+        def _send(obj: dict[str, Any]) -> str:
+            return f"data: {json.dumps(obj)}\n\n"
+
+        try:
+            machine = load_machine(db, session.id, policy)
+            turn = append_candidate_turn(
+                db, session_id=session.id, text=payload.text
+            )
+            db.refresh(session)
+            resume_claims = (session.candidate_profile.extracted_json or {}).get(
+                "claims", []
+            )
+            ctx = full_context(db, session, policy)
+            recent = recent_claims_for_session(db, session.id)
+            history = [
+                t if len(t) <= 600 else t[:600] + "…"
+                for t in recent_turn_texts(db, session.id)
+            ]
+            t0 = time.monotonic()
+            try:
+                from app.interview.turn_analysis import analyze_turn_robust
+
+                parsed, model_id, _fallback = analyze_turn_robust(
+                    turn.text,
+                    machine.current_state,
+                    policy,
+                    recent_claims=recent,
+                    coverage=ctx,
+                    recent_turns=history,
+                    resume_claims=resume_claims
+                    if isinstance(resume_claims, list)
+                    else [],
+                )
+            except ValueError as e:
+                msg = str(e)
+                if "Malformed LLM response" in msg or "Extraction failed" in msg:
+                    raise HTTPException(status_code=422, detail=msg) from e
+                raise HTTPException(status_code=502, detail=f"LLM step failed: {e}") from e
+            except Exception as e:
+                raise HTTPException(status_code=502, detail=f"LLM step failed: {e}") from e
+            analysis_ms = int((time.monotonic() - t0) * 1000)
+            claims = persist_answer_claims(
+                db, session_id=session.id, turn_id=turn.id, parsed=parsed
+            )
+            db.refresh(session)
+            applied = apply_proposal(machine, parsed, model_id, ctx)
+
+            closing = machine.current_state == InterviewState.CLOSING and applied
+            if closing:
+                session.status = SessionStatus.COMPLETED
+                session.ended_at = datetime.now(UTC)
+                db.commit()
+                target = None
+            else:
+                target = resolve_target_claim(db, session.id, parsed)
+            yield _send(
+                {
+                    "type": "started",
+                    "state": machine.current_state.value,
+                    "finished": closing,
+                    "transition_applied": applied,
+                    "claims_found": len(claims),
+                    "analysis_ms": analysis_ms,
+                }
+            )
+            t1 = time.monotonic()
+            parts: list[str] = []
+            try:
+                stream = generate_question_stream(
+                    machine.current_state,
+                    policy,
+                    session.candidate_profile.extracted_json or {},
+                    session.role_profile.extracted_json or {},
+                    target_claim=target,
+                    recent_turns=recent_turn_texts(db, session.id),
+                )
+                for delta in stream:
+                    parts.append(delta)
+                    yield _send({"type": "delta", "delta": delta})
+            except Exception as e:
+                raise HTTPException(
+                    status_code=502, detail=f"Question stream failed: {e}"
+                ) from e
+            question = "".join(parts).strip()
+            if not question:
+                raise HTTPException(status_code=502, detail="Streamed question is empty")
+            persist_miki_turn(db, session_id=session.id, text=question)
+            yield _send(
+                {
+                    "type": "done",
+                    "question": question,
+                    "state": machine.current_state.value,
+                    "finished": closing,
+                    "transition_applied": applied,
+                    "claims_found": len(claims),
+                    "analysis_ms": analysis_ms,
+                    "question_ms": int((time.monotonic() - t1) * 1000),
+                }
+            )
+        except HTTPException as e:
+            yield _send({"type": "error", "status": e.status_code, "detail": e.detail})
+        except Exception as e:
+            yield _send({"type": "error", "status": 502, "detail": str(e)[:300]})
+
+    return StreamingResponse(_events(), media_type="text/event-stream")
 
 
 @router.post("/session/{session_id}/abort")
