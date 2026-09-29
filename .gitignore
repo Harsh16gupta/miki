@@ -15,3 +15,8 @@ __pycache__/
 # Scratch scripts (keep verification scripts, ignore local outputs)
 scratch/*
 !scratch/test_*.py
+
+# Local agent scaffolding (not part of public repo)
+.agents/
+skills-lock.json
+docs/
