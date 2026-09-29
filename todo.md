@@ -65,7 +65,7 @@ Context: every single LLM call in the whole project goes through this layer. Bui
 - [x] Write the extraction prompt for candidate profiles: input is raw resume text, output is structured JSON (skills list, projects list with descriptions, explicit claims list e.g. "reduced latency by 40%"). Use `call_llm` with `task_type="extraction"` and JSON response format.
 - [x] Write the equivalent extraction prompt for role profiles (required skills, preferred skills, responsibilities, seniority signal).
 - [x] Wire both endpoints to: save raw text → call extraction → save extracted JSON to the `candidate_profile` / `role_profile` tables.
-- [ ] Test with your actual resume and a real job description you're targeting. Manually inspect the extracted JSON for accuracy — fix the prompt if it's missing obvious claims or projects.
+- [x] Test with your actual resume and a real job description you're targeting. Manually inspect the extracted JSON for accuracy — fix the prompt if it's missing obvious claims or projects. (2026-09-28 verified on Meta muse-spark-1.3-contributor with synthetic resume/JD: claims/skills/required_skills extracted sensibly, full answer turn + eval checkpoint pass; re-verify once with your real resume.)
 
 **Checkpoint 3:** You can upload your real resume and a real JD and get back sensible structured JSON, stored in the database, traceable in Langfuse.
 

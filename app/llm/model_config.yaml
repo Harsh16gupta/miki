@@ -3,15 +3,38 @@
 # Edit model ids here to change which model handles each task — no code change needed.
 # Cheap tasks (extraction, transition proposals) default to a low-cost model;
 # user-facing quality-critical tasks (questions, evaluation) default to a stronger model.
-# DEV NOTE (2026-09-07): all tasks on openai/gpt-4o-mini because
-# deepseek/deepseek-chat's shared pool kept timing out (repeated 504s) and
-# claude-sonnet-4.5 returns 402 without topped-up credits. Restore
-# question_generation + evaluation to `anthropic/claude-sonnet-4.5` (and
-# extraction/proposals to deepseek if its pool recovers) before quality
-# tuning. `report` stays cheap by design.
+# DEV NOTE (2026-09-28): Meta Model API (https://api.meta.ai/v1) per user
+# request — META_API_KEY already in .env. All tasks on
+# muse-spark-1.3-contributor (Contributor tier: $0.10/MTok in, $0.20/MTok out,
+# outputs used to train Meta's models). Router retries 2x on 429/5xx then
+# raises loud. Set LLM_PROVIDER=openrouter + OPENROUTER_API_KEY to fall back.
+# `report` stays cheap by design (same model for now).
 
-extraction: openai/gpt-4o-mini
-state_transition_proposal: openai/gpt-4o-mini
-question_generation: openai/gpt-4o-mini
-evaluation: openai/gpt-4o-mini
-report: openai/gpt-4o-mini
+extraction: muse-spark-1.3-contributor
+state_transition_proposal: muse-spark-1.3-contributor
+turn_analysis: muse-spark-1.3-contributor
+question_generation: muse-spark-1.3-contributor
+evaluation: muse-spark-1.3-contributor
+report: muse-spark-1.3-contributor
+
+# Reasoning depth per task (Meta `reasoning_effort`, top-level param).
+# Mechanical JSON stays shallow; quality-critical prose/eval goes deeper.
+# Valid: minimal, low, medium, high, xhigh ("none" 400s on Muse Spark).
+reasoning_effort:
+  extraction: minimal
+  state_transition_proposal: low
+  turn_analysis: minimal
+  question_generation: low
+  evaluation: medium
+  report: low
+
+# Output caps per task (Meta `max_tokens`: reasoning + visible combined —
+# keep generous so reasoning never starves the answer; an exhausted budget
+# returns finish_reason=length with EMPTY content). Bounds cost/tails only.
+max_tokens:
+  extraction: 1500
+  state_transition_proposal: 800
+  turn_analysis: 8000
+  question_generation: 2000
+  evaluation: 12000
+  report: 4000

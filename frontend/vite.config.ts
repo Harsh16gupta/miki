@@ -16,6 +16,7 @@ export default defineConfig({
       '/auth': API_TARGET,
       '/candidate-profile': API_TARGET,
       '/role-profile': API_TARGET,
+      '/sessions': API_TARGET,
       '/session': {
         target: API_TARGET,
         changeOrigin: true,

@@ -12,7 +12,7 @@ Telemetry: Langfuse
 Setup
 
 Copy .env.example to .env and fill in the required keys.
-Backend requires DATABASE_URL and JWT_SECRET_KEY. Voice requires DEEPGRAM_API_KEY. LLM calls require OPENROUTER_API_KEY.
+Backend requires DATABASE_URL and JWT_SECRET_KEY. Voice requires DEEPGRAM_API_KEY. LLM calls require META_API_KEY (Meta Model API, muse-spark-1.3-contributor; set LLM_PROVIDER=openrouter + OPENROUTER_API_KEY for the fallback).
 
 Run backend
 
