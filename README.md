@@ -29,6 +29,7 @@ cp .env.example .env
 alembic upgrade head
 uvicorn main:app --reload
 ```
+for me If you reboot and need to restart: start Postgres first, then alembic upgrade head, then venv/bin/uvicorn main:app --reload + npm run dev in frontend/.
 
 Frontend:
 
